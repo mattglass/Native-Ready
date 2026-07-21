@@ -1,0 +1,95 @@
+{
+  "workspaceVersion": 4,
+  "workspaceType": "ios-stitch",
+  "engineVersion": "autonomous-ios-dev-os-ready",
+  "app": {
+    "name": "[APP_NAME]",
+    "platform": "[PRIMARY_PLATFORM]",
+    "framework": "[UI_FRAMEWORK]",
+    "repoRoot": ".",
+    "nativeTarget": "[MAIN_TARGET_NAME]",
+    "nativeTestTarget": "[TEST_TARGET_NAME]",
+    "nativeProjectStatus": "not_created",
+    "nativeProjectPath": "[NATIVE_PROJECT_PATH]",
+    "nativeSourceRoot": "[NATIVE_SOURCE_ROOT]",
+    "nativeProjectContainer": "[MAIN_TARGET_NAME]App",
+    "bundleIdentifier": "[BUNDLE_IDENTIFIER]",
+    "appEntryType": "[APP_ENTRY_TYPE]",
+    "nativeDesignSource": "[DESIGN_FILE_OR_MODULE]"
+  },
+  "sourceOfTruth": {
+    "designDocument": ".stitch/DESIGN.md",
+    "appDocument": ".stitch/APP.md",
+    "designIntake": ".stitch/intake/design-intake.md",
+    "roadmap": ".stitch/ROADMAP.md",
+    "baton": ".stitch/next-prompt.md",
+    "bootstrapReceipt": "docs/bootstrap-receipt.md"
+  },
+  "appMaturity": {
+    "stage": "prototype",
+    "nextTarget": "dogfood",
+    "note": "Native project not created yet; setup should create or confirm the SwiftUI scaffold before product feature implementation."
+  },
+  "operatingModeDefaults": {
+    "roadmapTemplate": "current",
+    "batonSchema": "current",
+    "metadataEvidenceSchema": "current",
+    "evidenceExpectation": "standard",
+    "regressionScope": "local"
+  },
+  "scaffoldSchemas": {
+    "roadmapTaskTemplate": "current",
+    "batonSchema": "current",
+    "metadataEvidenceSchema": "current"
+  },
+  "stitchProjects": {
+    "primaryConceptProject": {
+      "projectId": "[STITCH_PROJECT_1_ID]",
+      "name": "[STITCH_PROJECT_1_RESOURCE_NAME]",
+      "title": "[STITCH_PROJECT_1_NAME]",
+      "role": "[PRIMARY_CONCEPT_ROLE]"
+    },
+    "secondaryConceptProject": {
+      "projectId": "[STITCH_PROJECT_2_ID]",
+      "name": "[STITCH_PROJECT_2_RESOURCE_NAME]",
+      "title": "[STITCH_PROJECT_2_NAME]",
+      "role": "[SECONDARY_CONCEPT_ROLE]"
+    },
+    "legacyProjects": []
+  },
+  "referenceScreens": [],
+  "stitchOperations": {
+    "journal": ".stitch/operations/current.json",
+    "activeProjectId": null,
+    "lastStatus": null,
+    "unresolvedOperationIds": []
+  },
+  "conceptCoverage": [],
+  "nativeDestinations": [],
+  "taskEvidence": [],
+  "designAdoptions": [],
+  "serviceMaturity": [],
+  "architectureReviewLog": [],
+  "riskRegister": [
+    {
+      "id": "risk-native-project-missing",
+      "surface": "native-scaffold",
+      "level": "medium",
+      "status": "open",
+      "note": "Native project has not been scaffolded yet.",
+      "linkedTask": "APP-001"
+    }
+  ],
+  "taskInjectionHistory": [],
+  "nativeScaffold": null,
+  "setupRun": {
+    "nativeScaffoldCreated": false,
+    "nativeTestTarget": "[TEST_TARGET_NAME]",
+    "schemeDiscovered": "unknown",
+    "firstBuildResult": "not_run",
+    "firstLaunchEvidence": null,
+    "batonValidation": "not_run",
+    "completionState": "blocked",
+    "receipt": "docs/bootstrap-receipt.md"
+  }
+}

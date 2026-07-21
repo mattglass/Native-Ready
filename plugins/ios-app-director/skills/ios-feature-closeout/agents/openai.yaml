@@ -1,0 +1,4 @@
+interface:
+  display_name: "iOS Feature Closeout"
+  short_description: "Validate and close out iOS roadmap work"
+  default_prompt: "Use $ios-feature-closeout to validate the current roadmap item, update evidence and risk, reconcile roadmap state, and write the next baton."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "iOS Feature Map"
+  short_description: "Synthesize Stitch-derived app feature requirements"
+  default_prompt: "Use $ios-feature-map to turn Stitch screens, notes, screenshots, or a Google Doc plan into a quality-controlled feature inventory and requirements map for APP.md, roadmap seeding, and refreshes after new design evidence."

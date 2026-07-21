@@ -1,0 +1,32 @@
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+*.p12
+*.mobileprovision
+
+# Xcode user state and build output
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Swift Package Manager caches and build artifacts
+.build/
+.swiftpm/
+Packages/
+
+# Node dependencies and logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor and temporary files
+*.swp
+*.tmp
+*~

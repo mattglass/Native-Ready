@@ -1,0 +1,4 @@
+interface:
+  display_name: "iOS Visual Spine"
+  short_description: "Compare Stitch and native screens to preserve visual identity"
+  default_prompt: "Use $ios-visual-spine to compare Stitch screenshots with simulator evidence, identify missing artwork and visual-fidelity gaps, and create or implement the next visual-spine roadmap task."

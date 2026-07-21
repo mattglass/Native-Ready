@@ -1,0 +1,58 @@
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+tool_output_token_limit = 12000
+# Leave room for native compaction near the context window.
+model_auto_compact_token_limit = 233000
+
+[features]
+ghost_commit = false
+unified_exec = true
+apply_patch_freeform = true
+skills = true
+shell_snapshot = true
+
+[mcp_servers.xcode]
+command = "xcrun"
+args = ["mcpbridge"]
+enabled = false
+
+[mcp_servers.xcode.tools.XcodeListWindows]
+approval_mode = "approve"
+
+[mcp_servers.xcode.tools.XcodeRead]
+approval_mode = "approve"
+
+[mcp_servers.xcode.tools.XcodeLS]
+approval_mode = "approve"
+
+[mcp_servers.xcode.tools.XcodeGlob]
+approval_mode = "approve"
+
+[mcp_servers.xcode.tools.BuildProject]
+approval_mode = "approve"
+
+[mcp_servers.xcode.tools.GetBuildLog]
+approval_mode = "approve"
+
+[mcp_servers.xcode.tools.XcodeListNavigatorIssues]
+approval_mode = "approve"
+
+[mcp_servers.xcode.tools.XcodeRefreshCodeIssuesInFile]
+approval_mode = "approve"
+
+[mcp_servers.xcode.tools.RenderPreview]
+approval_mode = "approve"
+
+[mcp_servers.xcode.tools.XcodeGrep]
+approval_mode = "approve"
+
+[mcp_servers.stitch]
+url = "https://stitch.googleapis.com/mcp"
+env_http_headers = { "X-Goog-Api-Key" = "STITCH_API_KEY" }
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+enabled = true
+
+[mcp_servers.XcodeBuildMCP]
+command = "npx"
+args = ["-y", "xcodebuildmcp@latest", "mcp"]

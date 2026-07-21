@@ -1,0 +1,4 @@
+interface:
+  display_name: "Stitch iOS Concept Builder"
+  short_description: "Generate first Stitch iOS concept screens"
+  default_prompt: "Use $stitch-ios-concept-builder to turn bootstrap answers and app intent into a first Stitch project/screen plan for design-first iOS setup."

@@ -1,0 +1,7 @@
+{
+  "name": "repo-local-plugins",
+  "interface": {
+    "displayName": "Repo Local Plugins"
+  },
+  "plugins": []
+}

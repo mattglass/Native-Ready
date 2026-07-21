@@ -1,0 +1,6 @@
+interface:
+  display_name: "iOS App Bootstrap"
+  short_description: "Create and launch a READY iOS app scaffold"
+  default_prompt: "Use $ios-app-bootstrap as the single setup entry point to turn my app idea into coherent READY memory, design evidence, a native SwiftUI Xcode project, a first simulator launch, and a bootstrap receipt."
+policy:
+  allow_implicit_invocation: true

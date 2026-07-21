@@ -1,0 +1,4 @@
+interface:
+  display_name: "Stitch iOS Intake"
+  short_description: "Capture or refresh Stitch screen evidence for iOS apps"
+  default_prompt: "Use $stitch-ios-intake to inspect the Stitch project, capture or refresh screen metadata, screenshots, and design-system signals, and prepare design-first app memory inputs."

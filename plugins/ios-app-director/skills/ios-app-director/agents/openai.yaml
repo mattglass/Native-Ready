@@ -1,0 +1,4 @@
+interface:
+  display_name: "iOS App Director"
+  short_description: "Advance roadmap-driven iOS app delivery"
+  default_prompt: "Use $ios-app-director to pick the next roadmap task, implement it, validate with XcodeBuildMCP when practical, update evidence, and advance the baton."

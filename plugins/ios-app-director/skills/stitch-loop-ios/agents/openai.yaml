@@ -1,0 +1,4 @@
+interface:
+  display_name: "Stitch Loop iOS"
+  short_description: "Run iterative Stitch-to-iOS concept loops"
+  default_prompt: "Use $stitch-loop-ios to read the current iOS baton, run the next Stitch concept or edit pass, and update native destination guidance."

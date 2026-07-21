@@ -1,0 +1,6 @@
+interface:
+  display_name: "iOS Setup Orchestrator"
+  short_description: "Coordinate an explicit Stitch-first setup"
+  default_prompt: "Use $ios-setup-orchestrator explicitly to coordinate a complex Stitch-first READY setup, then return control to $ios-app-bootstrap for first-launch validation and the bootstrap receipt."
+policy:
+  allow_implicit_invocation: false

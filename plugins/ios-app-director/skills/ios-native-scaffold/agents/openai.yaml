@@ -1,0 +1,4 @@
+interface:
+  display_name: "iOS Native Scaffold"
+  short_description: "Create the initial SwiftUI Xcode project"
+  default_prompt: "Use $ios-native-scaffold to create or repair the native SwiftUI Xcode scaffold, derive the app target/module/scheme names, replace MyApp placeholders, and prepare XcodeBuildMCP build validation."
