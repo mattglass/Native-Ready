@@ -507,6 +507,36 @@ class BootstrapReceiptTests(unittest.TestCase):
 
 
 class DistributionContractTests(unittest.TestCase):
+    def test_standard_marketplace_exposes_ios_app_director(self) -> None:
+        ready_root = PLUGIN_ROOT.parent.parent
+        marketplace = json.loads(
+            (ready_root / ".agents/plugins/marketplace.json").read_text(encoding="utf-8")
+        )
+        entry = next(
+            plugin
+            for plugin in marketplace["plugins"]
+            if plugin["name"] == "ios-app-director"
+        )
+        self.assertEqual(marketplace["name"], "repo-local-plugins")
+        self.assertEqual(
+            entry["source"],
+            {"source": "local", "path": "./plugins/ios-app-director"},
+        )
+        plugin_path = ready_root / entry["source"]["path"]
+        self.assertTrue((plugin_path / ".codex-plugin/plugin.json").is_file())
+        self.assertEqual(
+            entry["policy"],
+            {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+        )
+        self.assertEqual(entry["category"], "Coding")
+        opt_in_marketplace = json.loads(
+            (
+                ready_root
+                / ".agents/plugins/marketplace.opt-in-ios-app-director.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(marketplace, opt_in_marketplace)
+
     def test_template_baton_quotes_placeholder_values_for_yaml(self) -> None:
         ready_root = PLUGIN_ROOT.parent.parent
         next_prompt = (ready_root / ".stitch/next-prompt.md").read_text(encoding="utf-8")
@@ -523,6 +553,8 @@ class DistributionContractTests(unittest.TestCase):
             "AGENTS.md",
             "README.md",
             "SETUP.md",
+            ".agents/plugins/marketplace.json",
+            ".agents/plugins/marketplace.opt-in-ios-app-director.json",
             ".codex/config.toml",
             ".stitch/APP.md",
             ".stitch/DESIGN.md",

@@ -155,12 +155,23 @@ repo-root/
 6. After a `ready_for_delivery` receipt, use the documented `/goal` prompt and `ios-app-director` for autonomous delivery.
 7. Use `ios-feature-closeout` to reconcile roadmap, baton, evidence, risk, and next-step handoff after meaningful work.
 
-## Optional bundled plugin install
-NATIVE READY works without installing the repo-local plugin when the matching global skills are available. The default `.agents/plugins/marketplace.json` is intentionally empty so a copied app repo does not silently activate duplicate `ios-app-*` skills.
+## Install iOS App Director globally
+NATIVE READY publishes the complete 10-skill suite through the repository's standard Codex marketplace. Add the public GitHub repository as a marketplace, confirm that Codex can see the package, and install it:
 
-Developers who intentionally want the packaged local copy can use `.agents/plugins/marketplace.opt-in-ios-app-director.json`. That marketplace points at `plugins/ios-app-director/` and keeps the bundled plugin an explicit install choice.
+```bash
+codex plugin marketplace add mattglass/Native-Ready --ref main
+codex plugin list
+codex plugin add ios-app-director@repo-local-plugins
+```
 
-The bundled plugin manifest is skills-only by default. The plugin includes `.mcp.json` as optional wiring for XcodeBuildMCP, Cloudflare MCP, and Stitch MCP, but that file is not enabled automatically by `plugin.json`. Enable those MCP servers only after the developer has the needed local tools and Cloudflare/Stitch auth ready.
+Start a new Codex task after installation so the bundled skills are loaded. Do not also install manual copies of the same `ios-app-*` and `stitch-ios-*` skills; choose the plugin or the individual global skills as the single active source.
+
+To refresh an existing installation after a new release, run `codex plugin marketplace upgrade repo-local-plugins`, then reinstall `ios-app-director@repo-local-plugins` and start a new task.
+
+### Local bundled-plugin testing
+Developers working from a checkout can use `.agents/plugins/marketplace.opt-in-ios-app-director.json` for isolated local packaging tests. The standard `.agents/plugins/marketplace.json` is the GitHub-installable catalog and points at the same `plugins/ios-app-director/` package.
+
+The plugin manifest is skills-only by default. The included `.mcp.json` is optional reference wiring for XcodeBuildMCP, Cloudflare MCP, and Stitch MCP; installing the plugin does not enable those servers automatically.
 
 ## Design-first workflow
 The default bootstrap is also the design-first path. Use
@@ -199,4 +210,4 @@ internal setup coordinator and other NATIVE READY specialists to provide:
 - after bootstrap, validate the baton normally so unresolved placeholders fail; use `--allow-placeholders` only when validating the distributable source template itself
 
 ## Local plugin note
-This template ships a bundled repo-local plugin copy for developers who intentionally want to install the packaged framework. Keep the default marketplace empty unless the repo intentionally opts into that local plugin surface.
+This template ships a bundled repo-local plugin copy and a standard marketplace entry for global installation from GitHub. The separate opt-in marketplace file remains available for isolated local packaging tests.

@@ -96,9 +96,19 @@ The complete NATIVE READY suite contains exactly these 10 skills:
 - `ios-native-scaffold`
 - `stitch-loop-ios`
 
-### Global skills: normal local use
+### Recommended: install the global plugin
 
-Use the synchronized global skills when they are already installed. This avoids reinstalling a plugin for every copied app.
+Install the complete suite once from the public NATIVE READY repository:
+
+```bash
+codex plugin marketplace add mattglass/Native-Ready --ref main
+codex plugin list
+codex plugin add ios-app-director@repo-local-plugins
+```
+
+Start a new Codex task after installation. If the marketplace was already added, refresh it with `codex plugin marketplace upgrade repo-local-plugins`, reinstall the plugin, and start another new task.
+
+Use only one copy of each skill. If the same 10 skills were installed manually at user scope, remove or disable those copies before using the plugin.
 
 ### Bundled plugin: packaging or isolated testing
 
@@ -108,9 +118,9 @@ The same 10 skills are packaged in:
 plugins/ios-app-director/
 ```
 
-Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only when intentionally installing or testing that packaged copy. Do not activate it alongside global copies with the same names.
+The standard `.agents/plugins/marketplace.json` exposes this package for the global installation commands above. Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only for isolated local packaging tests, and do not activate it alongside a global installation.
 
-The default `.agents/plugins/marketplace.json` is intentionally empty. The bundled plugin is skills-only by default; `plugins/ios-app-director/.mcp.json` is reference wiring rather than automatically enabled configuration.
+The bundled plugin is skills-only by default; `plugins/ios-app-director/.mcp.json` is reference wiring rather than automatically enabled configuration.
 
 ## 4. Configure The Tool Connections
 
