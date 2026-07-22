@@ -215,8 +215,10 @@ internal setup coordinator and other NATIVE READY specialists to provide:
 The NATIVE READY source repository ships a bundled repo-local plugin copy and a standard marketplace entry for global installation from GitHub. The generated-app template keeps its standard marketplace empty. Its separate opt-in marketplace remains available for isolated local packaging tests when the bundled package is present.
 
 ## License
-NATIVE READY, including its orchestration engine, plugin, skills, scripts, documentation, and templates, is available under the MIT License. The source repository carries the standard terms in its root `LICENSE`, and generated app templates preserve the NATIVE READY notice in `LICENSES/NATIVE-READY-MIT.txt`.
+The NATIVE READY orchestration engine, its root documentation, and the embedded engine template are available under the Apache License 2.0, Copyright 2026 Matt Glass. The source repository carries the full terms in its root `LICENSE` and attribution in `NOTICE`. Generated app templates preserve those materials in `LICENSES/NATIVE-READY-APACHE-2.0.txt` and `LICENSES/NATIVE-READY-NOTICE.txt`.
 
-Applications and other output created with NATIVE READY are not automatically licensed under MIT. Their authors choose the license for their own work, subject to applicable third-party terms and preservation of the MIT notice when NATIVE READY source files or substantial portions are redistributed.
+The separately packaged `ios-app-director` plugin remains available under the MIT License, except for its embedded `skills/ios-app-bootstrap/templates/ai-app-engine/` subtree, which remains Apache-2.0-licensed NATIVE READY engine material. The source repository and plugin package each include a `LICENSING.md` map for the exact file boundaries.
 
-The MIT License does not grant permission to use the NATIVE READY name or logos in a way that implies endorsement, sponsorship, or official origin.
+Applications and other output created with NATIVE READY are not automatically licensed under Apache 2.0 or MIT. Their authors choose the license for their own work, subject to applicable third-party terms and preservation of the Apache 2.0 license and NOTICE when NATIVE READY source files or substantial portions are redistributed.
+
+Neither license grants permission to use the NATIVE READY name or logos in a way that implies endorsement, sponsorship, or official origin.
