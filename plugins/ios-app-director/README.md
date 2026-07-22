@@ -148,6 +148,8 @@ python3 -m unittest discover -s plugins/ios-app-director/tests -v
 ```
 
 ## License
-The packaged plugin and the broader NATIVE READY source distribution are available under the MIT License, Copyright (c) 2026 Matt Glass. See this package's `LICENSE` and the source repository's root `LICENSE`.
+The `ios-app-director` plugin is available under the MIT License, Copyright (c) 2026 Matt Glass. Its manifest remains identified as `MIT`; see this package's `LICENSE`.
 
-Applications and other output created with NATIVE READY are not automatically licensed under MIT. Their authors choose the license for their own work, subject to applicable third-party terms and preservation of the MIT notice when NATIVE READY source files or substantial portions are redistributed.
+The embedded NATIVE READY engine template at `skills/ios-app-bootstrap/templates/ai-app-engine/` is an explicit exception. That subtree remains licensed under Apache 2.0 and carries its own license and attribution files under `LICENSES/`. See `LICENSING.md` for the exact package boundary.
+
+Applications and other output created with the plugin are not automatically licensed under MIT or Apache 2.0. Their authors choose the license for their own work, subject to applicable third-party terms and preservation of the Apache 2.0 license and NOTICE when NATIVE READY source files or substantial portions are redistributed.

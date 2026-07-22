@@ -532,19 +532,41 @@ class DistributionContractTests(unittest.TestCase):
         self.assertFalse((PLUGIN_ROOT / "assets/ios-app-director-icon.svg").exists())
         self.assertFalse((PLUGIN_ROOT / "assets/ios-app-director-logo.svg").exists())
 
-    def test_license_covers_source_plugin_and_generated_template(self) -> None:
+    def test_license_separates_apache_engine_from_mit_plugin(self) -> None:
         ready_root = PLUGIN_ROOT.parent.parent
         source_license = (ready_root / "LICENSE").read_bytes()
+        source_notice = (ready_root / "NOTICE").read_bytes()
         plugin_license = (PLUGIN_ROOT / "LICENSE").read_bytes()
+        template_root = (
+            PLUGIN_ROOT / "skills/ios-app-bootstrap/templates/ai-app-engine"
+        )
         template_license = (
-            PLUGIN_ROOT
-            / "skills/ios-app-bootstrap/templates/ai-app-engine"
-            / "LICENSES/NATIVE-READY-MIT.txt"
+            template_root / "LICENSES/NATIVE-READY-APACHE-2.0.txt"
+        ).read_bytes()
+        template_notice = (
+            template_root / "LICENSES/NATIVE-READY-NOTICE.txt"
         ).read_bytes()
 
-        self.assertEqual(source_license, plugin_license)
         self.assertEqual(source_license, template_license)
-        self.assertIn(b"Copyright (c) 2026 Matt Glass", source_license)
+        self.assertEqual(source_notice, template_notice)
+        self.assertIn(b"Apache License", source_license)
+        self.assertIn(b"Version 2.0, January 2004", source_license)
+        self.assertIn(b"Copyright 2026 Matt Glass", source_notice)
+
+        self.assertNotEqual(source_license, plugin_license)
+        self.assertIn(b"MIT License", plugin_license)
+        self.assertIn(b"Copyright (c) 2026 Matt Glass", plugin_license)
+        self.assertFalse(
+            (template_root / "LICENSES/NATIVE-READY-MIT.txt").exists()
+        )
+
+        repo_licensing = (ready_root / "LICENSING.md").read_text(encoding="utf-8")
+        plugin_licensing = (PLUGIN_ROOT / "LICENSING.md").read_text(encoding="utf-8")
+        template_path = "skills/ios-app-bootstrap/templates/ai-app-engine/"
+        self.assertIn("Apache License 2.0", repo_licensing)
+        self.assertIn("MIT License", repo_licensing)
+        self.assertIn(template_path, plugin_licensing)
+        self.assertIn("excluded from that MIT grant", plugin_licensing)
 
         manifest = json.loads(
             (PLUGIN_ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
