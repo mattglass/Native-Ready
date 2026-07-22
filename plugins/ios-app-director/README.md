@@ -1,6 +1,6 @@
 # iOS App Director Plugin
 
-`iOS App Director` packages the autonomous, roadmap-driven READY engine into a
+`iOS App Director` packages the autonomous, roadmap-driven NATIVE READY engine into a
 staged Codex plugin bundle. The framework was designed and iterated in Codex
 CLI and the Codex desktop app with GPT-5.5 and GPT-5.6.
 
@@ -68,9 +68,9 @@ This plugin is meant to help a coding agent:
 
 ## Requirements
 
-Complete READY bootstrap requires a compatible Mac and Xcode installation, an
+Complete NATIVE READY bootstrap requires a compatible Mac and Xcode installation, an
 iOS Simulator runtime, Codex Desktop or Codex CLI, XcodeBuildMCP, and one active
-copy of the 10 READY skills. Automatic Stitch concept generation additionally
+copy of the 10 NATIVE READY skills. Automatic Stitch concept generation additionally
 requires a Google account with Stitch access and an authenticated Stitch MCP
 connection. Cloudflare and Apple Developer Program access are conditional on
 backend and distribution scope.
@@ -88,9 +88,15 @@ verification commands.
 - `../../workers/`
 
 ## Install behavior
-The bundled plugin is an opt-in packaged copy of the READY framework. The default READY marketplace is empty so app repos continue to prefer global skills unless the developer intentionally installs the local plugin.
+Install the packaged plugin globally from the public NATIVE READY marketplace:
 
-Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` from the repo root when testing or sharing the bundled copy. Avoid installing the bundled plugin alongside stale global `ios-app-*` skills unless you are intentionally testing package behavior.
+```bash
+codex plugin marketplace add mattglass/Native-Ready --ref main
+codex plugin list
+codex plugin add ios-app-director@repo-local-plugins
+```
+
+Start a new Codex task after installation. Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only for isolated local package testing, and avoid activating it alongside the global plugin or manual copies of the same skills.
 
 ## Optional MCP wiring
 The plugin manifest is skills-only by default and does not auto-enable MCP servers. The included `.mcp.json` is a reference config for developers who intentionally want plugin-local MCP wiring.
@@ -104,7 +110,7 @@ Leaving MCP wiring disabled avoids startup noise such as Cloudflare OAuth refres
 
 ## Design-first workflow
 `ios-app-bootstrap` is the public front door for the design-first path. It may
-use the internal setup coordinator and the same 10 READY skills whether they
+use the internal setup coordinator and the same 10 NATIVE READY skills whether they
 come from global installs or the opt-in bundled plugin copy. It can:
 - generate first-pass Stitch screens from bootstrap answers
 - keep one active Stitch project identity through setup and later art expansion,
@@ -135,7 +141,7 @@ This bundle is staged as a repo-local plugin at:
 - The current framework uses the current roadmap, baton, evidence, and maturity schemas.
 
 ## Validation
-Run the dependency-free script tests from the READY repo root:
+Run the dependency-free script tests from the NATIVE READY repo root:
 
 ```bash
 python3 -m unittest discover -s plugins/ios-app-director/tests -v

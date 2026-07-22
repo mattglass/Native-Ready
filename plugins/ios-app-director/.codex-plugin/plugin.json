@@ -36,7 +36,7 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Use iOS App Bootstrap as the single setup entry point for a new READY app.",
+      "Use iOS App Bootstrap as the single setup entry point for a new NATIVE READY app.",
       "Bootstrap from a Stitch project, screenshots, or product idea through the first simulator launch and receipt.",
       "Use iOS App Director to continue delivery from a validated active baton."
     ],
