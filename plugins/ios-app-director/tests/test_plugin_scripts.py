@@ -92,15 +92,16 @@ class BatonValidatorTests(unittest.TestCase):
         self.assertEqual(fields["platform"], "iPhone and iPad")
 
     def test_rejects_unresolved_template_placeholder_by_default(self) -> None:
-        errors, _, _ = self.validate_text(baton_text("[PRIMARY_PLATFORM]"))
+        errors, _, _ = self.validate_text(baton_text('"[PRIMARY_PLATFORM]"'))
         self.assertTrue(any("unresolved template placeholder" in error for error in errors))
 
     def test_allows_placeholder_only_when_explicitly_requested(self) -> None:
-        errors, _, _ = self.validate_text(
-            baton_text("[PRIMARY_PLATFORM]"),
+        errors, _, fields = self.validate_text(
+            baton_text('"[PRIMARY_PLATFORM]"'),
             allow_placeholders=True,
         )
         self.assertEqual(errors, [])
+        self.assertEqual(fields["platform"], "[PRIMARY_PLATFORM]")
 
 
 class FeatureMapTests(unittest.TestCase):
@@ -506,6 +507,15 @@ class BootstrapReceiptTests(unittest.TestCase):
 
 
 class DistributionContractTests(unittest.TestCase):
+    def test_template_baton_quotes_placeholder_values_for_yaml(self) -> None:
+        ready_root = PLUGIN_ROOT.parent.parent
+        next_prompt = (ready_root / ".stitch/next-prompt.md").read_text(encoding="utf-8")
+        self.assertIn('platform: "[PRIMARY_PLATFORM]"', next_prompt)
+        self.assertIn(
+            'destination: "[NATIVE_SOURCE_ROOT] native project scaffold and feature folders"',
+            next_prompt,
+        )
+
     def test_root_and_nested_template_operating_files_match(self) -> None:
         ready_root = PLUGIN_ROOT.parent.parent
         nested = PLUGIN_ROOT / "skills/ios-app-bootstrap/templates/ai-app-engine"

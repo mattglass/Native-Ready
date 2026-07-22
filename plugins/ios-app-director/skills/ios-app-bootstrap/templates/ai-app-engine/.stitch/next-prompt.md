@@ -1,10 +1,10 @@
 ---
-platform: [PRIMARY_PLATFORM]
+platform: "[PRIMARY_PLATFORM]"
 roadmap_task: APP-001
 task_type: native_scaffold
 feature: app-shell-and-native-project
 screen: App shell
-destination: [NATIVE_SOURCE_ROOT] native project scaffold and feature folders
+destination: "[NATIVE_SOURCE_ROOT] native project scaffold and feature folders"
 mode: native
 device: universal
 validation_tier: tier1_compile
