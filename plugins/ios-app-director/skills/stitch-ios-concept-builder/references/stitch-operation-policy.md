@@ -58,8 +58,13 @@ Classify the tool result before choosing recovery behavior:
   against the current schema; keep the same project.
 - `timeout_or_connection`: outcome is unknown. Do not immediately repeat the
   mutation; enter polling against the same project.
-- `auth_required`: block only when that MCP is required for current product
-  scope. Record and ignore an unavailable optional MCP.
+- `api_key_required`: no `STITCH_API_KEY` reached the current Codex process.
+  Direct the user to `https://stitch.withgoogle.com/settings` and the plugin's
+  secure setup helper without requesting the key in chat. Restart Codex Desktop
+  after setup. Block only the Stitch-dependent phase when Stitch is required;
+  record and bypass it when optional.
+- `auth_required`: when `STITCH_API_KEY` is present, treat this as key validity
+  or process-propagation trouble. Do not use generic OAuth or change projects.
 - `not_found`: reconcile the active project from user input, repo metadata, and
   discovery. Never substitute an example ID.
 - `rate_limited` or `server_error`: preserve the operation and use bounded

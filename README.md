@@ -36,7 +36,7 @@ It is designed to support:
 
 ## Requirements
 
-NATIVE READY's complete native loop requires a compatible Mac and Xcode installation,
+NATIVE READY's complete native loop requires a compatible Mac, Xcode 16 or newer,
 an iOS Simulator runtime, Codex Desktop or Codex CLI, one active copy of the 10
 NATIVE READY skills, and XcodeBuildMCP. The automatic design-first path also requires
 a Google account with Stitch access plus a Stitch API key supplied to Codex as

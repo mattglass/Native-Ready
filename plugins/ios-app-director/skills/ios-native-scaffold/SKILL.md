@@ -30,6 +30,7 @@ Read only what is needed:
 ## Guardrails
 
 - Run only after app memory, design memory, feature map, roadmap, metadata, and baton are coherent.
+- Require Xcode 16 or newer. Stop before scaffold writes when the bundled generator reports an unsupported toolchain.
 - Do not install the bundled plugin globally during scaffold work.
 - Do not edit unrelated app repos.
 - Do not keep `MyApp` as the native target unless the user explicitly chooses that name.
@@ -75,6 +76,8 @@ python3 scripts/render_ios_native_scaffold.py \
 
 Omit `--target-name` and `--bundle-id` when they can be safely derived.
 
+The generator enforces Xcode 16 or newer before writing the native project. It emits an Xcode 16-era synchronized-group project in Swift 6 language mode and defaults to an iOS 18.0 minimum deployment target. Use `--deployment-target` only when the product has a different explicit minimum. Xcode 26 is recommended when the product needs the newest SDK or IDE capabilities.
+
 ### 3. Inspect The Result
 
 Confirm:
@@ -102,6 +105,10 @@ Before build/run/test work, follow XcodeBuildMCP session rules:
 1. call `session_show_defaults`
 2. set defaults when needed with project path, scheme, simulator, and bundle id
 3. use `build_run_sim` for the first launch validation
+4. reveal Simulator with `open_simulator` when available, or `open -a Simulator` as a local fallback
+5. verify the app process or visible app UI; a build, installation, boot spinner, or booted device alone is not launch evidence
+
+Opening the Xcode application is optional. `xcodebuild` and XcodeBuildMCP can build without presenting the Xcode UI.
 
 ### 5. Hand Off
 

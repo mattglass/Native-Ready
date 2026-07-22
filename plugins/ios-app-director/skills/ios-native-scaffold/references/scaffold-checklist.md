@@ -2,6 +2,8 @@
 
 ## Before Scaffold
 
+- `xcodebuild -version` reports Xcode 16 or newer.
+- A matching iOS Simulator runtime is installed.
 - App name is known.
 - Platform is known: iPhone or iPhone and iPad.
 - `.stitch/APP.md` section 9 is usable.
@@ -32,6 +34,7 @@ Required memory updates:
 
 ## Validation
 
+- The project uses Swift 6 language mode and the supported Xcode 16+ scaffold format.
 - `rg "MyApp/|nativeTarget.*MyApp|Main app target:.*MyApp|Build target:.*MyApp|App target:.*MyApp" AGENTS.md docs .stitch` returns no active native target or path references.
 - XcodeBuildMCP can list the generated scheme.
 - First build/run reaches at least tier1 compile and launch.

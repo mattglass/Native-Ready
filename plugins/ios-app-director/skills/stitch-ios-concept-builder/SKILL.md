@@ -79,6 +79,8 @@ artwork that can be carried into SwiftUI.
 
 ### 3. Generate Or Edit In Stitch
 
+Before the first Stitch call, verify that `STITCH_API_KEY` is available to the current Codex process without printing it. When it is absent, classify the capability as `api_key_required`, link the user directly to [Stitch Settings](https://stitch.withgoogle.com/settings), and use the plugin's secure macOS helper rather than asking for the secret in chat. Codex Desktop must be fully restarted after the key is added. Do not use Codex's generic OAuth **Authenticate** action for this API-key MCP.
+
 When Stitch MCP tools are available:
 - use `create_project` if no project exists
 - use `generate_screen_from_text` for the first screen
@@ -104,6 +106,7 @@ Before the first project-specific read or mutation, follow
 - Snapshot screen IDs before a mutation, prepare the journal operation, and
   classify its result before reporting progress.
 - Treat an invalid argument as a payload problem, not a project problem.
+- Treat `auth_required` with a present `STITCH_API_KEY` as a key-propagation or key-validity problem, not permission to create a replacement project.
 - Treat a timeout as outcome unknown and poll the same project according to the
   current Stitch tool contract.
 - When polling is exhausted, record `ambiguous_timeout` and surface any needed

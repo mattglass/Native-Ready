@@ -142,14 +142,67 @@ class NativeScaffoldHelperTests(unittest.TestCase):
                     target_name="",
                     bundle_id="",
                     platform="iphone-and-ipad",
-                    deployment_target="26.0",
+                    deployment_target=native_scaffold.DEFAULT_DEPLOYMENT_TARGET,
                     force=False,
-                )
+                ),
+                xcode_version_output="Xcode 16.4\nBuild version 16F6",
             )
             metadata = json.loads((root / ".stitch" / "metadata.json").read_text())
+            project = (
+                root
+                / "KittyKeeperApp"
+                / "KittyKeeper.xcodeproj"
+                / "project.pbxproj"
+            ).read_text(encoding="utf-8")
+            app_icon = json.loads(
+                (
+                    root
+                    / "KittyKeeperApp"
+                    / "KittyKeeper"
+                    / "Assets.xcassets"
+                    / "AppIcon.appiconset"
+                    / "Contents.json"
+                ).read_text(encoding="utf-8")
+            )
+            app_view_model = (
+                root / "KittyKeeperApp" / "KittyKeeper" / "AppViewModel.swift"
+            ).read_text(encoding="utf-8")
             self.assertEqual(result["plannedTestTarget"], "KittyKeeperTests")
+            self.assertEqual(result["xcodeVersion"], "16.4")
             self.assertEqual(metadata["app"]["nativeTestTarget"], "KittyKeeperTests")
+            self.assertEqual(metadata["nativeScaffold"]["minimumXcodeMajor"], 16)
+            self.assertEqual(metadata["nativeScaffold"]["swiftLanguageMode"], "6.0")
+            self.assertEqual(metadata["nativeScaffold"]["deploymentTarget"], "18.0")
+            self.assertEqual(metadata["setupRun"]["toolchainStatus"], "supported")
             self.assertIn("KittyKeeperTests", (root / "AGENTS.md").read_text())
+            self.assertIn("objectVersion = 77;", project)
+            self.assertIn("CreatedOnToolsVersion = 16.0;", project)
+            self.assertIn("PBXFileSystemSynchronizedRootGroup", project)
+            self.assertIn("fileSystemSynchronizedGroups", project)
+            self.assertIn("IPHONEOS_DEPLOYMENT_TARGET = 18.0;", project)
+            self.assertIn("SWIFT_VERSION = 6.0;", project)
+            self.assertNotIn("SWIFT_VERSION = 5.0;", project)
+            self.assertIn("@MainActor", app_view_model)
+            self.assertEqual(len(app_icon["images"]), 3)
+            self.assertEqual(app_icon["images"][0]["idiom"], "universal")
+
+    def test_scaffold_rejects_xcode_15_before_writing_project(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            with self.assertRaisesRegex(RuntimeError, "Unsupported Xcode 15.2"):
+                native_scaffold.create_scaffold(
+                    SimpleNamespace(
+                        repo_root=str(root),
+                        app_name="Kitty Keeper",
+                        target_name="",
+                        bundle_id="",
+                        platform="iphone-and-ipad",
+                        deployment_target=native_scaffold.DEFAULT_DEPLOYMENT_TARGET,
+                        force=False,
+                    ),
+                    xcode_version_output="Xcode 15.2\nBuild version 15C500b",
+                )
+            self.assertFalse((root / "KittyKeeperApp").exists())
 
 
 class IntakeManifestTests(unittest.TestCase):
@@ -444,6 +497,9 @@ class BootstrapReceiptTests(unittest.TestCase):
                 build_evidence=".stitch/evidence/bootstrap/launch.png",
                 notes=[],
                 scheme_discovered="yes",
+                first_launch_result="succeeded",
+                launch_evidence=".stitch/evidence/bootstrap/launch.png",
+                toolchain_status="supported",
             )
             self.assertIn("Completion state: `ready_for_delivery`", text)
             self.assertIn("Stitch project ID: `project-123`", text)
@@ -464,6 +520,8 @@ class BootstrapReceiptTests(unittest.TestCase):
                 build_evidence=".stitch/evidence/bootstrap/launch.png",
                 notes=[],
                 scheme_discovered="unknown",
+                first_launch_result="succeeded",
+                toolchain_status="supported",
             )
             self.assertIn("Completion state: `partial`", text)
             self.assertIn("scheme-discovery: unknown", text)
@@ -485,6 +543,8 @@ class BootstrapReceiptTests(unittest.TestCase):
                 build_evidence=".stitch/evidence/bootstrap/launch.png",
                 notes=[],
                 scheme_discovered="yes",
+                first_launch_result="succeeded",
+                toolchain_status="supported",
             )
             self.assertIn("Completion state: `partial`", text)
             self.assertIn("does not identify the next delivery task", text)
@@ -500,10 +560,83 @@ class BootstrapReceiptTests(unittest.TestCase):
                 stitch_status="unavailable",
                 build_evidence=None,
                 notes=["Stitch authentication needs attention"],
+                first_launch_result="not_run",
+                toolchain_status="supported",
             )
             self.assertIn("Completion state: `blocked`", text)
             self.assertIn("recorded native project was not found", text)
             self.assertIn("Stitch authentication needs attention", text)
+
+    def test_receipt_records_missing_stitch_api_key_precisely(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.write_repo(root)
+            text = bootstrap_receipt.render_receipt(
+                root,
+                first_build_result="succeeded",
+                baton_validation="passed",
+                stitch_status="api_key_required",
+                build_evidence=".stitch/evidence/bootstrap/launch.png",
+                notes=["Set STITCH_API_KEY, restart Codex Desktop, and resume Stitch."],
+                scheme_discovered="yes",
+                first_launch_result="succeeded",
+                toolchain_status="supported",
+            )
+            self.assertIn("Stitch status: `api_key_required`", text)
+            self.assertIn("Set STITCH_API_KEY, restart Codex Desktop", text)
+
+    def test_receipt_cli_accepts_api_key_required_status(self) -> None:
+        args = bootstrap_receipt.build_parser().parse_args(
+            ["--repo-root", ".", "--stitch-status", "api_key_required"]
+        )
+        self.assertEqual(args.stitch_status, "api_key_required")
+
+    def test_successful_build_with_failed_launch_stays_partial(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.write_repo(root)
+            text = bootstrap_receipt.render_receipt(
+                root,
+                first_build_result="succeeded",
+                first_launch_result="failed",
+                baton_validation="passed",
+                stitch_status="api_key_required",
+                build_evidence="BUILD SUCCEEDED",
+                launch_evidence="simulator showed only a boot spinner",
+                notes=[],
+                scheme_discovered="yes",
+                toolchain_status="supported",
+            )
+            self.assertIn("Completion state: `partial`", text)
+            self.assertIn("First build: `succeeded`", text)
+            self.assertIn("First launch: `failed`", text)
+            self.assertIn("first-launch: failed", text)
+            self.assertIn("simulator showed only a boot spinner", text)
+
+    def test_unsupported_toolchain_blocks_even_when_project_exists(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.write_repo(root)
+            text = bootstrap_receipt.render_receipt(
+                root,
+                first_build_result="not_run",
+                first_launch_result="not_run",
+                baton_validation="not_run",
+                stitch_status="api_key_required",
+                build_evidence=None,
+                notes=["Installed Xcode is 15.2."],
+                scheme_discovered="unknown",
+                toolchain_status="unsupported_toolchain",
+            )
+            self.assertIn("Completion state: `blocked`", text)
+            self.assertIn("Xcode toolchain: `unsupported_toolchain`", text)
+            self.assertIn("Install and select Xcode 16 or newer", text)
+
+    def test_receipt_cli_accepts_unsupported_toolchain_status(self) -> None:
+        args = bootstrap_receipt.build_parser().parse_args(
+            ["--repo-root", ".", "--toolchain-status", "unsupported_toolchain"]
+        )
+        self.assertEqual(args.toolchain_status, "unsupported_toolchain")
 
 
 class DistributionContractTests(unittest.TestCase):
@@ -514,8 +647,17 @@ class DistributionContractTests(unittest.TestCase):
         )
         mcp = json.loads((PLUGIN_ROOT / ".mcp.json").read_text(encoding="utf-8"))
         stitch = mcp["mcpServers"]["stitch"]
+        xcodebuildmcp = mcp["mcpServers"]["xcodebuildmcp"]
 
         self.assertEqual(manifest["mcpServers"], "./.mcp.json")
+        self.assertEqual(
+            xcodebuildmcp["env"]["XCODEBUILDMCP_ENABLED_WORKFLOWS"],
+            "simulator,ui-automation,debugging",
+        )
+        self.assertNotIn(
+            "logging",
+            xcodebuildmcp["env"]["XCODEBUILDMCP_ENABLED_WORKFLOWS"],
+        )
         self.assertEqual(stitch["url"], "https://stitch.googleapis.com/mcp")
         self.assertEqual(
             stitch["env_http_headers"],

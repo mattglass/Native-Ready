@@ -15,3 +15,5 @@ Optional follow-up questions:
 - What existing codebase or starter should be reused?
 - What matters most right now: prototype speed, internal testing, or production readiness?
 - Are Codex, Xcode/Simulator, XcodeBuildMCP, and any required Stitch account/MCP connection ready?
+
+Never ask the user to paste a Stitch API key into the conversation. Check only whether `STITCH_API_KEY` is present. If it is missing, provide the direct Stitch Settings link and secure setup helper, then continue independent native setup when Stitch is optional.
