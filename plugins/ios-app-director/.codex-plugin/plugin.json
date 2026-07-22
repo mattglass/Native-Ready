@@ -1,6 +1,6 @@
 {
   "name": "ios-app-director",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "A roadmap-driven iOS app development engine with one bootstrap entry point, design-first setup, native SwiftUI scaffolding, simulator validation, receipts, and production-minded delivery loops.",
   "author": {
     "name": "Matt Glass"

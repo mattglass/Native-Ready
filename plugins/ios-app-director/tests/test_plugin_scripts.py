@@ -648,6 +648,7 @@ class DistributionContractTests(unittest.TestCase):
         mcp = json.loads((PLUGIN_ROOT / ".mcp.json").read_text(encoding="utf-8"))
         stitch = mcp["mcpServers"]["stitch"]
         xcodebuildmcp = mcp["mcpServers"]["xcodebuildmcp"]
+        cloudflare = mcp["mcpServers"]["cloudflare-api"]
 
         self.assertEqual(manifest["mcpServers"], "./.mcp.json")
         self.assertEqual(
@@ -664,6 +665,9 @@ class DistributionContractTests(unittest.TestCase):
             {"X-Goog-Api-Key": "STITCH_API_KEY"},
         )
         self.assertIn("generic OAuth Authenticate action is not", stitch["note"])
+        self.assertEqual(cloudflare["url"], "https://mcp.cloudflare.com/mcp")
+        self.assertIs(cloudflare["enabled"], False)
+        self.assertIn("disabled by default", cloudflare["note"])
 
         plugin_readme = (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8")
         setup = (ready_root / "SETUP.md").read_text(encoding="utf-8")
@@ -672,6 +676,8 @@ class DistributionContractTests(unittest.TestCase):
             self.assertIn("STITCH_API_KEY", document)
             self.assertIn("Google AI Studio", document)
             self.assertIn("never paste", document.lower())
+            self.assertIn("cloudflare-api", document)
+            self.assertIn("disabled by default", document.lower())
 
         helper_path = PLUGIN_ROOT / "scripts/configure-stitch-api-key-macos.sh"
         helper = helper_path.read_text(encoding="utf-8")

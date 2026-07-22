@@ -173,7 +173,7 @@ Developers working from the full NATIVE READY source checkout can use `.agents/p
 
 App repos produced from the bundled bootstrap template intentionally receive an empty standard marketplace, so they do not advertise a second local plugin after a global installation. Their opt-in marketplace remains available for isolated testing when the local `plugins/ios-app-director/` package is also present.
 
-The plugin manifest registers its included `.mcp.json` for XcodeBuildMCP, Cloudflare MCP, and Stitch MCP. Cloudflare uses its supported OAuth flow. Stitch reads `STITCH_API_KEY`; the generic OAuth **Authenticate** action is not its setup path. See [SETUP.md](SETUP.md) for the direct Stitch Settings link and secure macOS/CLI setup.
+The plugin manifest registers its included `.mcp.json` for XcodeBuildMCP, Cloudflare MCP, and Stitch MCP. Cloudflare is bundled but disabled by default; enable and authenticate it only when the app needs Cloudflare services. Stitch reads `STITCH_API_KEY`; the generic OAuth **Authenticate** action is not its setup path. See [SETUP.md](SETUP.md) for the Cloudflare opt-in flow, direct Stitch Settings link, and secure macOS/CLI setup.
 
 ## Design-first workflow
 The default bootstrap is also the design-first path. Use

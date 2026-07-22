@@ -129,7 +129,7 @@ codex plugin list
 codex plugin add ios-app-director@repo-local-plugins
 ```
 
-Start a new Codex task after installation. Authentication is deferred until a connection is used, so optional Cloudflare and Stitch credentials do not block installation. If the marketplace was already added, refresh it with `codex plugin marketplace upgrade repo-local-plugins`, reinstall the plugin, and start another new task.
+Start a new Codex task after installation. Cloudflare MCP is bundled but disabled by default, and Stitch authentication is deferred until Stitch is used, so optional credentials do not block installation. If the marketplace was already added, refresh it with `codex plugin marketplace upgrade repo-local-plugins`, reinstall the plugin, and start another new task.
 
 Use only one copy of each skill. If the same 10 skills were installed manually at user scope, remove or disable those copies before using the plugin.
 
@@ -145,7 +145,7 @@ The source repository's standard `.agents/plugins/marketplace.json` exposes this
 
 Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only for isolated local packaging tests in a checkout that also contains `plugins/ios-app-director/`, and do not activate it alongside a global installation.
 
-The bundled plugin manifest registers `plugins/ios-app-director/.mcp.json`, so the plugin carries its XcodeBuildMCP, Cloudflare, and Stitch connection definitions with it. The real Stitch key remains outside the package.
+The bundled plugin manifest registers `plugins/ios-app-director/.mcp.json`, so the plugin carries its XcodeBuildMCP, Cloudflare, and Stitch connection definitions with it. Cloudflare ships disabled by default. The real Stitch key remains outside the package.
 
 ## 4. Configure The Tool Connections
 
@@ -153,7 +153,7 @@ The bundled MCP configuration defines:
 
 - `xcodebuildmcp` through `npx`
 - `stitch` through Google's Stitch MCP endpoint
-- `cloudflare-api` through Cloudflare's MCP endpoint
+- `cloudflare-api` through Cloudflare's MCP endpoint, disabled by default
 
 Prefer already configured global MCP connections when they exist. The packaged plugin otherwise registers its own MCP definitions through `"mcpServers": "./.mcp.json"`.
 
@@ -162,7 +162,7 @@ Before bootstrap:
 1. Run `xcodebuild -version`. Xcode 16 is the firm minimum; upgrade before bootstrap if the installed major version is lower.
 2. Confirm XcodeBuildMCP starts and exposes `session_show_defaults` and `build_run_sim`.
 3. If Stitch is in scope, set `STITCH_API_KEY`, fully quit and reopen Codex Desktop, and confirm the Stitch connection can list or access projects. Do not use the generic OAuth **Authenticate** action for this API-key flow. Bootstrap should report `api_key_required` before its first Stitch call when the key is absent.
-4. Treat Cloudflare authentication as optional unless the first runnable slice depends on it.
+4. If the first runnable slice needs Cloudflare, open **Settings → MCP servers**, enable `cloudflare-api`, restart Codex, and select **Authenticate** to use Cloudflare's supported OAuth flow. Otherwise leave it disabled.
 5. Restart Codex after changing global skill or MCP configuration.
 
 ## 5. Start The Same Way In Codex Desktop Or CLI
@@ -260,5 +260,5 @@ Use `stitch-loop-ios` when a delivery task needs another bounded generation, edi
 - **A missing optional screen became the active blocker:** move it to a dependency-correct roadmap task and activate the best executable native task.
 - **A legacy Stitch wrapper appeared:** retire or disable its implicit global invocation; it is not part of the 10-skill NATIVE READY bundle.
 - **A generic or unrelated target/test target appeared:** remove stale global/project instructions and derive names from the current app.
-- **Cloudflare auth failed in a local-only app:** classify Cloudflare as optional or not in scope and continue.
+- **Cloudflare is unavailable in an app that needs it:** confirm `cloudflare-api` is enabled under **Settings → MCP servers**, restart Codex, and then select **Authenticate**. For a local-only app, leave Cloudflare disabled and continue.
 - **Desktop and CLI differ:** verify the same Codex version, model/effort, first-turn prompt, workspace root, skill source, permissions, and MCP availability before comparing results.

@@ -39,7 +39,7 @@ Cloudflare MCP can support backend and service delivery when needed.
 - the repo-root starter pack files used for new app setup
 - optional MCP wiring in `.mcp.json` for:
   - XcodeBuildMCP
-  - Cloudflare MCP
+  - Cloudflare MCP, disabled by default
   - Stitch MCP
 
 ## Bundled skills
@@ -96,7 +96,7 @@ codex plugin list
 codex plugin add ios-app-director@repo-local-plugins
 ```
 
-Start a new Codex task after installation. Authentication is deferred until a connection is used, so installation does not require optional Cloudflare or Stitch credentials. Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only for isolated local package testing, and avoid activating it alongside the global plugin or manual copies of the same skills.
+Start a new Codex task after installation. Cloudflare MCP is bundled but disabled by default, and Stitch authentication is deferred until Stitch is used, so installation does not require optional credentials. Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only for isolated local package testing, and avoid activating it alongside the global plugin or manual copies of the same skills.
 
 ## Connect Google Stitch
 
@@ -143,17 +143,31 @@ unset STITCH_API_KEY
 The plugin manifest registers the included `.mcp.json`. It provides:
 
 - XcodeBuildMCP through `npx`
-- Cloudflare MCP, whose **Authenticate** action opens the supported OAuth flow
+- Cloudflare MCP, bundled but disabled by default
 - Google Stitch MCP, whose `X-Goog-Api-Key` header is read from `STITCH_API_KEY`
 
 Before using the MCP tools, confirm:
 
 - XcodeBuildMCP can run locally through `npx`.
-- Cloudflare MCP OAuth or bearer-token auth is configured when Cloudflare is in scope.
+- When Cloudflare is in scope, `cloudflare-api` is enabled and its OAuth or bearer-token auth is configured.
 - `STITCH_API_KEY` is configured for the target Google/Stitch account when Stitch is in scope.
 
 Cloudflare remains optional unless the app needs backend work. Stitch remains
 optional when bootstrap can proceed from screenshots, notes, or a product brief.
+
+### Enable Cloudflare when needed
+
+Cloudflare stays off for new installations so local-only apps do not see an
+unnecessary authentication step. When an app needs Workers, storage, APIs, or
+other Cloudflare services:
+
+1. Open **Settings → MCP servers** in Codex.
+2. Enable `cloudflare-api`.
+3. Restart Codex and open a new task.
+4. Select **Authenticate** for `cloudflare-api` to start Cloudflare's supported OAuth flow.
+
+Leave `cloudflare-api` disabled when Cloudflare is not part of the app's service
+architecture.
 
 ## Design-first workflow
 `ios-app-bootstrap` is the public front door for the design-first path. It may
