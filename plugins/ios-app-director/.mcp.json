@@ -4,7 +4,7 @@
       "command": "npx",
       "args": ["-y", "xcodebuildmcp@latest", "mcp"],
       "env": {
-        "XCODEBUILDMCP_ENABLED_WORKFLOWS": "simulator,ui-automation,debugging,logging"
+        "XCODEBUILDMCP_ENABLED_WORKFLOWS": "simulator,ui-automation,debugging"
       }
     },
     "cloudflare-api": {

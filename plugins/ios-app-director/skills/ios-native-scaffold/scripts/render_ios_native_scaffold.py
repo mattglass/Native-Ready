@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,7 +12,44 @@ from pathlib import Path
 
 GENERATOR = "ios-native-scaffold"
 DEFAULT_BUNDLE_PREFIX = "com.example"
+DEFAULT_DEPLOYMENT_TARGET = "18.0"
+MINIMUM_XCODE_MAJOR = 16
 GENERIC_TARGETS = {"app", "myapp", "testapp", "untitledapp"}
+
+
+def require_supported_xcode(version_output: str | None = None) -> str:
+    if version_output is None:
+        try:
+            result = subprocess.run(
+                ["xcodebuild", "-version"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except FileNotFoundError as error:
+            raise RuntimeError(
+                "NATIVE READY requires Xcode 16 or newer, but xcodebuild was not found."
+            ) from error
+        except subprocess.CalledProcessError as error:
+            detail = (error.stderr or error.stdout or "xcodebuild -version failed").strip()
+            raise RuntimeError(f"Could not verify the required Xcode toolchain: {detail}") from error
+        version_output = result.stdout
+
+    match = re.search(r"^Xcode\s+(\d+)(?:\.(\d+))?", version_output, re.MULTILINE)
+    if not match:
+        raise RuntimeError("Could not parse the installed Xcode version from xcodebuild -version.")
+
+    major = int(match.group(1))
+    version = match.group(1)
+    if match.group(2):
+        version = f"{version}.{match.group(2)}"
+    if major < MINIMUM_XCODE_MAJOR:
+        raise RuntimeError(
+            f"Unsupported Xcode {version}. NATIVE READY requires Xcode "
+            f"{MINIMUM_XCODE_MAJOR} or newer. Upgrade Xcode and install a matching "
+            "iOS Simulator runtime before running bootstrap; no native scaffold was created."
+        )
+    return version
 
 
 def pascal_identifier(value: str) -> str:
@@ -112,6 +150,8 @@ def update_metadata(
     project_rel: str,
     source_rel: str,
     platform: str,
+    xcode_version: str,
+    deployment_target: str,
 ) -> bool:
     path = repo_root / ".stitch" / "metadata.json"
     if not path.exists():
@@ -187,12 +227,18 @@ def update_metadata(
         "scheme": target_name,
         "bundleIdentifier": bundle_id,
         "appEntryType": f"{target_name}App",
+        "xcodeVersion": xcode_version,
+        "minimumXcodeMajor": MINIMUM_XCODE_MAJOR,
+        "swiftLanguageMode": "6.0",
+        "deploymentTarget": deployment_target,
     }
 
     setup_run = data.setdefault("setupRun", {})
     setup_run["nativeScaffoldCreated"] = True
     setup_run["nativeTestTarget"] = f"{target_name}Tests"
     setup_run["swiftFilesEdited"] = True
+    setup_run["toolchainStatus"] = "supported"
+    setup_run["xcodeVersion"] = xcode_version
 
     for risk in data.get("riskRegister", []):
         if isinstance(risk, dict) and risk.get("id") == "risk-native-project-missing":
@@ -210,6 +256,8 @@ def update_memory_files(
     bundle_id: str,
     project_rel: str,
     source_rel: str,
+    xcode_version: str,
+    deployment_target: str,
 ) -> list[str]:
     replacements = [
         ("[APP_NAME]", app_name),
@@ -254,6 +302,9 @@ def update_memory_files(
 - Project path: {project_rel}
 - Source root: {source_rel}
 - App entry type: {target_name}App
+- Xcode: {xcode_version} (minimum supported major: {MINIMUM_XCODE_MAJOR})
+- Swift language mode: 6.0
+- Minimum iOS deployment target: {deployment_target}
 - Generator: {GENERATOR}
 - Created: {datetime.now(timezone.utc).isoformat()}
 
@@ -269,10 +320,15 @@ def update_memory_files(
     return changed
 
 
-def create_scaffold(args: argparse.Namespace) -> dict[str, str | list[str]]:
+def create_scaffold(
+    args: argparse.Namespace,
+    *,
+    xcode_version_output: str | None = None,
+) -> dict[str, str | list[str]]:
     repo_root = Path(args.repo_root).expanduser().resolve()
     if not repo_root.exists():
         raise FileNotFoundError(f"Repo root does not exist: {repo_root}")
+    xcode_version = require_supported_xcode(xcode_version_output)
 
     app_name = args.app_name.strip()
     target_name = args.target_name.strip() if args.target_name else pascal_identifier(app_name)
@@ -309,8 +365,27 @@ def create_scaffold(args: argparse.Namespace) -> dict[str, str | list[str]]:
     write_text(source_root / "Assets.xcassets" / "AccentColor.colorset" / "Contents.json", ACCENT_COLOR_JSON, args.force)
     write_text(source_root / "Assets.xcassets" / "AppIcon.appiconset" / "Contents.json", APP_ICON_JSON, args.force)
 
-    metadata_changed = update_metadata(repo_root, app_name, target_name, bundle_id, project_rel, source_rel, args.platform)
-    changed_memory = update_memory_files(repo_root, app_name, target_name, bundle_id, project_rel, source_rel)
+    metadata_changed = update_metadata(
+        repo_root,
+        app_name,
+        target_name,
+        bundle_id,
+        project_rel,
+        source_rel,
+        args.platform,
+        xcode_version,
+        args.deployment_target,
+    )
+    changed_memory = update_memory_files(
+        repo_root,
+        app_name,
+        target_name,
+        bundle_id,
+        project_rel,
+        source_rel,
+        xcode_version,
+        args.deployment_target,
+    )
 
     return {
         "appName": app_name,
@@ -318,6 +393,7 @@ def create_scaffold(args: argparse.Namespace) -> dict[str, str | list[str]]:
         "plannedTestTarget": f"{target_name}Tests",
         "scheme": target_name,
         "bundleIdentifier": bundle_id,
+        "xcodeVersion": xcode_version,
         "projectPath": str((repo_root / project_rel).resolve()),
         "sourceRoot": str((repo_root / source_rel).resolve()),
         "metadataUpdated": str(metadata_changed),
@@ -332,7 +408,11 @@ def main() -> int:
     parser.add_argument("--target-name", default="", help="Xcode target/scheme/module name. Derived from app name when omitted.")
     parser.add_argument("--bundle-id", default="", help="Bundle identifier. Derived when omitted.")
     parser.add_argument("--platform", choices=["iphone", "iphone-and-ipad"], default="iphone-and-ipad")
-    parser.add_argument("--deployment-target", default="26.0")
+    parser.add_argument(
+        "--deployment-target",
+        default=DEFAULT_DEPLOYMENT_TARGET,
+        help="Minimum iOS version. Defaults to 18.0 for the supported Xcode 16 baseline.",
+    )
     parser.add_argument("--force", action="store_true", help="Overwrite scaffold files when the project already exists.")
     args = parser.parse_args()
 
@@ -425,11 +505,11 @@ PBXPROJ_TEMPLATE = """// !$*UTF8*$!
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2640;
-				LastUpgradeCheck = 2640;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					A00000000000000000000008 = {
-						CreatedOnToolsVersion = 26.4;
+						CreatedOnToolsVersion = 16.0;
 					};
 				};
 			};
@@ -616,11 +696,8 @@ PBXPROJ_TEMPLATE = """// !$*UTF8*$!
 				PRODUCT_BUNDLE_IDENTIFIER = __BUNDLE_ID__;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = __TARGETED_DEVICE_FAMILY__;
 			};
@@ -650,11 +727,8 @@ PBXPROJ_TEMPLATE = """// !$*UTF8*$!
 				PRODUCT_BUNDLE_IDENTIFIER = __BUNDLE_ID__;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = __TARGETED_DEVICE_FAMILY__;
 			};
@@ -713,6 +787,7 @@ struct __APP_ENTRY_TYPE__: App {
 
 CONTENT_VIEW_TEMPLATE = """import SwiftUI
 
+@MainActor
 struct ContentView: View {
     @State private var viewModel = AppViewModel()
 

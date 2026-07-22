@@ -90,6 +90,9 @@ def render_receipt(
     build_evidence: str | None,
     notes: list[str],
     scheme_discovered: str = "unknown",
+    first_launch_result: str = "unknown",
+    launch_evidence: str | None = None,
+    toolchain_status: str = "unknown",
 ) -> str:
     metadata = load_json(repo_root / ".stitch" / "metadata.json")
     baton = parse_frontmatter(repo_root / ".stitch" / "next-prompt.md")
@@ -126,12 +129,16 @@ def render_receipt(
         and active_task_type not in {"unknown", "native_scaffold"}
     )
     risks = open_risks(metadata)
+    if toolchain_status != "supported":
+        risks.append(f"xcode-toolchain: {toolchain_status}")
     if not project_exists:
         risks.append("native-project: recorded native project was not found")
     if scheme_discovered != "yes":
         risks.append(f"scheme-discovery: {scheme_discovered}")
     if first_build_result != "succeeded":
         risks.append(f"first-build: {first_build_result}")
+    if first_launch_result != "succeeded":
+        risks.append(f"first-launch: {first_launch_result}")
     if baton_validation != "passed":
         risks.append(f"baton-validation: {baton_validation}")
     elif not delivery_baton_ready:
@@ -142,8 +149,10 @@ def render_receipt(
 
     if (
         project_exists
+        and toolchain_status == "supported"
         and scheme_discovered == "yes"
         and first_build_result == "succeeded"
+        and first_launch_result == "succeeded"
         and baton_validation == "passed"
         and delivery_baton_ready
     ):
@@ -152,6 +161,12 @@ def render_receipt(
             "/goal Build autonomously toward the v1 app until the planned features work, "
             "the roadmap is reconciled, validation evidence is captured, and the app is ready "
             "for real user testing. Use $ios-app-director to continue from the active baton."
+        )
+    elif toolchain_status in {"unsupported_toolchain", "unavailable"}:
+        completion_state = "blocked"
+        next_prompt = (
+            "Install and select Xcode 16 or newer with a matching iOS Simulator runtime, "
+            "then use $ios-app-bootstrap to resume from docs/bootstrap-receipt.md."
         )
     elif not project_exists:
         completion_state = "blocked"
@@ -167,7 +182,8 @@ def render_receipt(
         )
 
     risk_lines = "\n".join(f"- {risk}" for risk in risks) or "- None recorded"
-    evidence = build_evidence or "not recorded"
+    build_evidence_text = build_evidence or "not recorded"
+    launch_evidence_text = launch_evidence or "not recorded"
     provisional = "yes" if bundle_identifier.startswith("com.example.") else "no"
     generated = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -199,9 +215,12 @@ def render_receipt(
 
 ## Validation
 
+- Xcode toolchain: `{toolchain_status}`
 - Scheme discovered: `{scheme_discovered}`
-- First build/launch: `{first_build_result}`
-- Build evidence: `{evidence}`
+- First build: `{first_build_result}`
+- Build evidence: `{build_evidence_text}`
+- First launch: `{first_launch_result}`
+- Launch evidence: `{launch_evidence_text}`
 - Active roadmap task: `{active_task}`
 - Active task type: `{active_task_type}`
 - Baton validation: `{baton_validation}`
@@ -227,16 +246,34 @@ def build_parser() -> argparse.ArgumentParser:
         default="unknown",
     )
     parser.add_argument(
+        "--first-launch-result",
+        choices=("succeeded", "failed", "not_run", "unknown"),
+        default="unknown",
+    )
+    parser.add_argument(
         "--baton-validation",
         choices=("passed", "failed", "not_run", "unknown"),
         default="unknown",
     )
     parser.add_argument(
         "--stitch-status",
-        choices=("auto", "configured", "unavailable", "not_in_scope", "partial"),
+        choices=(
+            "auto",
+            "configured",
+            "api_key_required",
+            "unavailable",
+            "not_in_scope",
+            "partial",
+        ),
         default="auto",
     )
     parser.add_argument("--build-evidence")
+    parser.add_argument("--launch-evidence")
+    parser.add_argument(
+        "--toolchain-status",
+        choices=("supported", "unsupported_toolchain", "unavailable", "unknown"),
+        default="unknown",
+    )
     parser.add_argument(
         "--scheme-discovered",
         choices=("yes", "no", "unknown"),
@@ -260,6 +297,9 @@ def main() -> int:
         build_evidence=args.build_evidence,
         notes=args.note,
         scheme_discovered=args.scheme_discovered,
+        first_launch_result=args.first_launch_result,
+        launch_evidence=args.launch_evidence,
+        toolchain_status=args.toolchain_status,
     )
     output.write_text(receipt, encoding="utf-8")
 
@@ -270,8 +310,10 @@ def main() -> int:
         setup_run = metadata.setdefault("setupRun", {})
         if isinstance(setup_run, dict):
             setup_run["schemeDiscovered"] = args.scheme_discovered
+            setup_run["toolchainStatus"] = args.toolchain_status
             setup_run["firstBuildResult"] = args.first_build_result
-            setup_run["firstLaunchEvidence"] = args.build_evidence
+            setup_run["firstLaunchResult"] = args.first_launch_result
+            setup_run["firstLaunchEvidence"] = args.launch_evidence
             setup_run["batonValidation"] = args.baton_validation
             setup_run["completionState"] = (
                 completion_match.group(1) if completion_match else "partial"

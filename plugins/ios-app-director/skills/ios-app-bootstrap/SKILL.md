@@ -50,6 +50,18 @@ Classify each capability as `required`, `optional`, or `not_in_scope`:
 
 Xcode and XcodeBuildMCP are required for READY bootstrap completion. Stitch is required when the user makes Stitch a hard requirement; otherwise unavailable Stitch is a degraded design-input path, not a reason to skip the native scaffold. Cloudflare is optional unless the first runnable slice needs it.
 
+Run `xcodebuild -version` before native scaffold generation. Xcode 16 is the firm minimum supported toolchain. If Xcode is missing or its major version is below 16, classify the capability as `unsupported_toolchain`, write or refresh the blocked bootstrap receipt, and stop before generating the native project. Do not downgrade the project format, Swift language mode, or deployment target to accommodate Xcode 15. Run the current XcodeBuildMCP doctor after the version gate and keep any independent doctor failure explicit.
+
+Before the first Stitch call, check whether `STITCH_API_KEY` is available to the current Codex process without printing or exposing its value. If it is absent:
+
+- classify Stitch as `api_key_required`, not as a generic OAuth or account failure
+- direct the user to [Stitch Settings](https://stitch.withgoogle.com/settings) and the plugin's secure macOS helper; never ask them to paste the key into the conversation
+- tell Codex Desktop users to fully quit and reopen Codex after setting the key
+- when Stitch is optional, continue the independent native path and record the exact resume action in the receipt
+- when Stitch is required, pause only the Stitch-dependent phase
+
+If the key is present but Stitch still returns `auth_required`, classify that as a key-propagation or key-validity problem and preserve the same project identity. Do not start the generic OAuth **Authenticate** flow for Stitch.
+
 Ask only for a missing product decision or credential that prevents meaningful progress. Record tool/account problems precisely in the receipt.
 
 ### 2. Establish the project frame
@@ -114,19 +126,20 @@ If a real Xcode project is missing:
 4. Confirm XcodeBuildMCP defaults when needed.
 5. Discover the generated scheme.
 6. Run `build_run_sim` for the first simulator build/launch.
-7. Capture a screenshot or equivalent launch evidence when practical.
+7. Make the Simulator visible with XcodeBuildMCP's `open_simulator` when available, or `open -a Simulator` as a local fallback. Xcode itself does not need to open for command-line builds.
+8. Capture a screenshot or equivalent launch evidence when practical.
 
-If build or launch fails, diagnose and repair setup defects before handing off. Stop only for a concrete tool, signing, platform, or product blocker supported by evidence.
+Do not infer a successful launch from a successful build, app installation, a booted device, or a Simulator spinner. Require the app process or visible app UI. If build or launch fails, diagnose and repair setup defects before handing off. Stop only for a concrete tool, signing, platform, or product blocker supported by evidence.
 
 ### 7. Write the non-blocking receipt
 
 Run:
 
 ```text
-python3 plugins/ios-app-director/skills/ios-app-bootstrap/scripts/render_bootstrap_receipt.py --repo-root . --scheme-discovered <yes|no|unknown> --first-build-result <succeeded|failed|not_run|unknown> --baton-validation <passed|failed|not_run|unknown>
+python3 plugins/ios-app-director/skills/ios-app-bootstrap/scripts/render_bootstrap_receipt.py --repo-root . --toolchain-status <supported|unsupported_toolchain|unavailable|unknown> --scheme-discovered <yes|no|unknown> --first-build-result <succeeded|failed|not_run|unknown> --first-launch-result <succeeded|failed|not_run|unknown> --baton-validation <passed|failed|not_run|unknown>
 ```
 
-Add `--stitch-status`, `--build-evidence`, and repeatable `--note` values when useful. The renderer reports state and always leaves remediation visible; receipt completeness is never itself a gate.
+Add `--stitch-status`, `--build-evidence`, `--launch-evidence`, and repeatable `--note` values when useful. Keep build and launch results independent: a successful compile does not turn a failed launch into success. The renderer reports state and always leaves remediation visible; receipt completeness is never itself a gate.
 
 The receipt must name:
 

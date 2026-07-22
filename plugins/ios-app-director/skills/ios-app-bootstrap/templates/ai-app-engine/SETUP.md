@@ -19,7 +19,7 @@ Use the same public entry point in Codex Desktop and Codex CLI: `ios-app-bootstr
 
 XcodeBuildMCP currently documents macOS 14.5+, Xcode 16+, and Node.js 18+ for its npm/npx installation path. A Homebrew installation does not require Node.js. Follow the current [XcodeBuildMCP installation guide](https://www.xcodebuildmcp.com/docs/installation) when those requirements change.
 
-This template targets iOS 26 by default, so use an Xcode release that includes the iOS 26 SDK and install an iOS 26 Simulator runtime. If you retarget the template, use the matching SDK/runtime instead.
+NATIVE READY supports Xcode 16 or newer and stops before native scaffold generation on an older toolchain. The generated project uses Xcode 16-era synchronized groups, Swift 6 language mode, and an iOS 18.0 minimum deployment target by default. Xcode 26 is recommended for the newest platform and IDE capabilities; use a matching Simulator runtime for the Xcode version you run.
 
 ### Required for automatic Stitch design generation
 
@@ -159,10 +159,11 @@ Prefer already configured global MCP connections when they exist. The packaged p
 
 Before bootstrap:
 
-1. Confirm XcodeBuildMCP starts and exposes `session_show_defaults` and `build_run_sim`.
-2. If Stitch is in scope, set `STITCH_API_KEY`, restart Codex, and confirm the Stitch connection can list or access projects. Do not use the generic OAuth **Authenticate** action for this API-key flow.
-3. Treat Cloudflare authentication as optional unless the first runnable slice depends on it.
-4. Restart Codex after changing global skill or MCP configuration.
+1. Run `xcodebuild -version`. Xcode 16 is the firm minimum; upgrade before bootstrap if the installed major version is lower.
+2. Confirm XcodeBuildMCP starts and exposes `session_show_defaults` and `build_run_sim`.
+3. If Stitch is in scope, set `STITCH_API_KEY`, fully quit and reopen Codex Desktop, and confirm the Stitch connection can list or access projects. Do not use the generic OAuth **Authenticate** action for this API-key flow. Bootstrap should report `api_key_required` before its first Stitch call when the key is absent.
+4. Treat Cloudflare authentication as optional unless the first runnable slice depends on it.
+5. Restart Codex after changing global skill or MCP configuration.
 
 ## 5. Start The Same Way In Codex Desktop Or CLI
 
@@ -252,6 +253,9 @@ Use `stitch-loop-ios` when a delivery task needs another bounded generation, edi
 ## 9. Troubleshooting
 
 - **No Xcode project appeared:** resume `$ios-app-bootstrap`; memory-only output is not complete bootstrap.
+- **Bootstrap reports `unsupported_toolchain`:** install Xcode 16 or newer, select it with `xcode-select` when necessary, install a matching Simulator runtime, and resume bootstrap. NATIVE READY does not generate a compatibility scaffold for Xcode 15.
+- **The build passed but no Simulator window appeared:** Xcode and command-line builds can run headlessly. Bootstrap should call `open_simulator` or fall back to `open -a Simulator`; a boot spinner is not successful app-launch evidence.
+- **Stitch says authentication is required:** create the key in [Stitch Settings](https://stitch.withgoogle.com/settings), use the hidden-input setup above, fully restart Codex Desktop, and open a fresh task. Do not use the generic OAuth **Authenticate** action.
 - **A Stitch mutation timed out:** record the ambiguous operation, avoid an untracked replacement, and continue independent native setup when possible.
 - **A missing optional screen became the active blocker:** move it to a dependency-correct roadmap task and activate the best executable native task.
 - **A legacy Stitch wrapper appeared:** retire or disable its implicit global invocation; it is not part of the 10-skill NATIVE READY bundle.

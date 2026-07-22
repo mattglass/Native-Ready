@@ -68,7 +68,7 @@ This plugin is meant to help a coding agent:
 
 ## Requirements
 
-Complete NATIVE READY bootstrap requires a compatible Mac and Xcode installation, an
+Complete NATIVE READY bootstrap requires a compatible Mac, Xcode 16 or newer, an
 iOS Simulator runtime, Codex Desktop or Codex CLI, XcodeBuildMCP, and one active
 copy of the 10 NATIVE READY skills. Automatic Stitch concept generation additionally
 requires a Google account with Stitch access and a Stitch API key exposed to

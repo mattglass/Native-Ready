@@ -20,6 +20,7 @@ Bootstrap may delegate these phases to other READY skills, but `ios-app-bootstra
 
 ### `ready_for_delivery`
 
+- the receipt records `toolchain_status: supported` for Xcode 16 or newer
 - the native `.xcodeproj` or `.xcworkspace` exists
 - target, module, scheme, source root, and bundle identifier are recorded
 - XcodeBuildMCP discovered the scheme
@@ -32,6 +33,7 @@ Bootstrap may delegate these phases to other READY skills, but `ios-app-bootstra
 Use when setup made meaningful progress but one or more checks remain incomplete, such as:
 
 - Stitch is unavailable but the native scaffold and build can proceed
+- Stitch reports `api_key_required` and is optional, with the secure setup and restart action recorded
 - a non-critical Stitch screen or report timed out
 - build tooling exists but launch evidence could not be captured
 - a required signing or distribution identity decision is pending for device or release work
@@ -43,6 +45,7 @@ Keep independent phases moving. Put the unresolved item in the risk register or 
 Use only when a concrete condition prevents meaningful continuation, such as:
 
 - Xcode or the required SDK/runtime is unavailable
+- Xcode is older than 16 and is classified as `unsupported_toolchain`
 - XcodeBuildMCP cannot be started or used after recovery attempts
 - the native scaffold cannot be generated or repaired
 - a required user product decision changes project identity or architecture
@@ -68,6 +71,8 @@ The bounded loop improves weak concepts without making perfect Stitch output a p
 ## Receipt behavior
 
 `docs/bootstrap-receipt.md` is a generated status report, not a validator. It must render even when metadata or evidence is incomplete and must list unknown or missing fields explicitly. A failed receipt field creates remediation work; it does not erase completed setup work.
+
+The receipt must distinguish a successful build from a successful launch. A simulator boot spinner, installed app bundle, or booted device is failure/diagnostic evidence until the app process or visible app UI is verified.
 
 ## Delivery boundary
 
