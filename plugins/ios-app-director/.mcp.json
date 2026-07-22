@@ -15,7 +15,12 @@
     "stitch": {
       "type": "http",
       "url": "https://stitch.googleapis.com/mcp",
-      "note": "Google Stitch MCP server for concept generation and editing. Requires project/user auth or API key configuration before use."
+      "env_http_headers": {
+        "X-Goog-Api-Key": "STITCH_API_KEY"
+      },
+      "startup_timeout_sec": 20,
+      "tool_timeout_sec": 60,
+      "note": "Google Stitch MCP server for concept generation and editing. In Codex, create the key in Google Stitch Settings and expose it as STITCH_API_KEY; the generic OAuth Authenticate action is not the setup path for this server."
     }
   }
 }

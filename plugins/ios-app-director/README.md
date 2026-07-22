@@ -71,9 +71,9 @@ This plugin is meant to help a coding agent:
 Complete NATIVE READY bootstrap requires a compatible Mac and Xcode installation, an
 iOS Simulator runtime, Codex Desktop or Codex CLI, XcodeBuildMCP, and one active
 copy of the 10 NATIVE READY skills. Automatic Stitch concept generation additionally
-requires a Google account with Stitch access and an authenticated Stitch MCP
-connection. Cloudflare and Apple Developer Program access are conditional on
-backend and distribution scope.
+requires a Google account with Stitch access and a Stitch API key exposed to
+Codex as `STITCH_API_KEY`. Cloudflare and Apple Developer Program access are
+conditional on backend and distribution scope.
 
 The packaged starter's `SETUP.md` contains the prerequisite matrix and current
 verification commands.
@@ -96,17 +96,64 @@ codex plugin list
 codex plugin add ios-app-director@repo-local-plugins
 ```
 
-Start a new Codex task after installation. Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only for isolated local package testing, and avoid activating it alongside the global plugin or manual copies of the same skills.
+Start a new Codex task after installation. Authentication is deferred until a connection is used, so installation does not require optional Cloudflare or Stitch credentials. Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only for isolated local package testing, and avoid activating it alongside the global plugin or manual copies of the same skills.
 
-## Optional MCP wiring
-The plugin manifest is skills-only by default and does not auto-enable MCP servers. The included `.mcp.json` is a reference config for developers who intentionally want plugin-local MCP wiring.
+## Connect Google Stitch
 
-Before enabling `.mcp.json`, confirm:
+Stitch uses API-key authentication for the quick personal setup. Codex's generic
+**Authenticate** action starts an OAuth registration flow, which is not the
+setup path for the Stitch MCP endpoint. If that button produces no browser
+window, create and supply a Stitch API key instead:
+
+1. Sign in at [Google Stitch](https://stitch.withgoogle.com/).
+2. Open [Stitch Settings](https://stitch.withgoogle.com/settings), choose **API Keys**, select **Create key**, and copy the new key.
+3. Make the key available as `STITCH_API_KEY` to the process that launches Codex.
+4. Fully quit and reopen Codex Desktop, or start a new Codex CLI process, then open a new task.
+
+Google's detailed instructions are in the [Stitch MCP setup guide](https://stitch.withgoogle.com/docs/mcp/setup/). A Google AI Studio key is a Gemini API credential; it is not the documented replacement for a key created in Stitch Settings.
+
+Never paste the key into a Codex conversation, commit it, or put the literal
+value in `.mcp.json` or `.codex/config.toml`.
+
+On macOS, a NATIVE READY source checkout includes a hidden-input helper that
+makes the key available to Codex Desktop for the current login session:
+
+```bash
+./plugins/ios-app-director/scripts/configure-stitch-api-key-macos.sh
+```
+
+To clear it later:
+
+```bash
+./plugins/ios-app-director/scripts/configure-stitch-api-key-macos.sh --clear
+```
+
+For Codex CLI, keep the key only in the terminal session that launches Codex:
+
+```bash
+read -rs "STITCH_API_KEY?Paste your Stitch API key: "
+printf '\n'
+export STITCH_API_KEY
+codex
+unset STITCH_API_KEY
+```
+
+## MCP wiring
+
+The plugin manifest registers the included `.mcp.json`. It provides:
+
+- XcodeBuildMCP through `npx`
+- Cloudflare MCP, whose **Authenticate** action opens the supported OAuth flow
+- Google Stitch MCP, whose `X-Goog-Api-Key` header is read from `STITCH_API_KEY`
+
+Before using the MCP tools, confirm:
+
 - XcodeBuildMCP can run locally through `npx`.
-- Cloudflare MCP OAuth or bearer-token auth is configured.
-- Stitch MCP auth is configured for the target Google/Stitch account.
+- Cloudflare MCP OAuth or bearer-token auth is configured when Cloudflare is in scope.
+- `STITCH_API_KEY` is configured for the target Google/Stitch account when Stitch is in scope.
 
-Leaving MCP wiring disabled avoids startup noise such as Cloudflare OAuth refresh errors in sessions that only need the skill bundle.
+Cloudflare remains optional unless the app needs backend work. Stitch remains
+optional when bootstrap can proceed from screenshots, notes, or a product brief.
 
 ## Design-first workflow
 `ios-app-bootstrap` is the public front door for the design-first path. It may
