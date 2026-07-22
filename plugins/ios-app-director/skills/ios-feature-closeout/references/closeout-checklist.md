@@ -19,7 +19,9 @@ Turn changed code or concept work into a responsibly closed roadmap unit with ev
     or exact-parity claim, run the prototype visual exit audit for core
     Stitch-backed screens; if any core screen remains `same_family_only`,
     `partially_adopted`, `generic_substitute`, or `parity_unproven`, inject or
-    activate the smallest visual-spine task instead of promoting maturity
+    activate the smallest visual-spine task instead of promoting maturity; run
+    `ios-visual-spine/scripts/validate_visual_exit.py` from the active skill and
+    require a successful result before recording promotion
 12. before writing a no-next-task handoff, audit `.stitch/APP.md`, design intake,
     metadata, risk, service maturity, and any new Stitch screen evidence for
     unmet buildable scope

@@ -4,7 +4,8 @@
 Use Stitch and other concept sources to improve native product quality without copying generic layouts literally.
 
 ## Design intake rules
-1. Treat concept work as directional, not authoritative.
+1. Treat concept layouts as directional rather than literal pixel authority,
+   while preserving approved visual identity as the intended target.
 2. Extract semantic value first: hierarchy, trust signals, navigation clarity, information density, tone.
 3. Prefer SwiftUI-feeling structure over exact visual mimicry.
 4. Prefer app-specific product logic over decorative novelty.
@@ -50,6 +51,11 @@ python3 <stitch-ios-intake-skill-dir>/scripts/extract_stitch_image_assets.py --r
 Use `.stitch/intake/image-asset-manifest.*` as the stable source-artwork index.
 Generated artwork is a fallback or product decision, not proof that available
 Stitch source artwork has been adopted.
+
+Verified native behavior defines what currently exists. It does not silently
+supersede the intended visual identity. A native token or component becomes
+design authority only after explicit user acceptance or visual-gate evidence;
+otherwise record it as adoption evidence or divergence.
 
 If a bundled script is unavailable, fall back to `rg --files .stitch/intake | sort`.
 

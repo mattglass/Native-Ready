@@ -143,7 +143,10 @@ Make necessary, reversible changes within the user-designated workspace, includi
 - Do not flatten product-critical Stitch artwork or image-forward layouts into generic cards or plain SF Symbols
 - Keep service contracts separate from UI placeholders; do not imply live backend, AI, upload, account, sync, or sharing behavior unless it exists and was validated
 - Update roadmap, baton, and evidence-bearing project memory as the work evolves
-- Do not assume conceptual designs outrank the live implementation
+- Separate current-state truth from design authority: verified native behavior
+  defines what exists, while approved Stitch references, extracted artwork,
+  `.stitch/DESIGN.md`, and screen packets define intended visual identity for a
+  design-first surface until the user accepts, rejects, or supersedes it
 - Ask only the most important missing questions before starting work
 - Consider app maturity before injecting release-readiness, refactor, or regression tasks
 - Trigger cross-feature architecture review when reusable patterns or seams begin to drift

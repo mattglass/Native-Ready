@@ -192,6 +192,11 @@ come from global installs or the opt-in bundled plugin copy. It can:
 - extract source artwork from saved Stitch HTML into `.stitch/intake/assets/` and `.stitch/intake/image-asset-manifest.*`
 - turn screenshots, prompt notes, and Google Docs into a quality-controlled feature map
 - run a visual-spine audit so early native tasks preserve the concept's product-critical artwork, image-forward cards, motifs, and same-product-family feel
+- keep approved Stitch visual intent authoritative until the user accepts a
+  divergence or the native surface passes its visual gate
+- run an executable visual-exit evidence check before design-first maturity
+  promotion so same-family, generic-substitute, or missing core screens cannot
+  be self-certified as complete
 - write that feature map into `.stitch/APP.md` before roadmap and baton creation
 - generate the native SwiftUI Xcode project with a real target/module/scheme name before implementation starts
 - replace active `MyApp` destination placeholders in app memory

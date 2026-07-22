@@ -193,6 +193,10 @@ internal setup coordinator and other NATIVE READY specialists to provide:
   expansion work without imposing a fixed screen set or count
 - quality-controlled `.stitch/APP.md` section 9 generation before roadmap and baton creation
 - visual-spine planning and screen-level implementation packets so native work preserves the creative identity from Stitch
+- separate verified current behavior from intended design authority so an early
+  generic SwiftUI pass cannot silently overrule approved Stitch evidence
+- enforce design-first maturity claims with a visual-exit evidence validator;
+  same-family or generic-substitute core screens remain active recovery work
 - automated native SwiftUI Xcode scaffolding with app-specific target/module/scheme naming
 - placeholder cleanup so `MyApp` does not leak into implementation destinations
 - refresh mode when new Stitch screens should update APP.md, DESIGN.md, metadata, roadmap, or baton

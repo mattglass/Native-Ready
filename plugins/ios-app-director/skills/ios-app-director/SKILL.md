@@ -211,7 +211,9 @@ exist and the app builds. Run the prototype visual exit audit in
 readiness, or exact-parity claims. If a core Stitch-backed screen is still
 `same_family_only`, `partially_adopted`, `generic_substitute`, or
 `parity_unproven`, create or activate the smallest visual-spine task instead of
-promoting maturity.
+promoting maturity. Validate the evidence with the active
+`ios-visual-spine/scripts/validate_visual_exit.py`; a nonzero result is a hard
+roadmap gate, not a documentation warning.
 
 ### 3a. Keep the roadmap and baton schema disciplined
 
@@ -226,6 +228,13 @@ app repo contains the validator.
 ### 4. Design intentionally
 
 Use `references/design-intake-policy.md` when pulling from Stitch or any concept source.
+
+Keep current-state truth separate from design authority. Verified SwiftUI and
+simulator behavior define what exists now. For a design-first surface, approved
+Stitch references, source artwork, `.stitch/DESIGN.md`, and screen packets
+define intended visual identity until the user explicitly accepts, rejects, or
+supersedes that direction. The current native screen is adoption evidence, not
+automatic permission to weaken or redefine the visual target.
 
 Do not copy conceptual UI literally into native code.
 Do not flatten a distinctive Stitch concept into generic SwiftUI either. If the

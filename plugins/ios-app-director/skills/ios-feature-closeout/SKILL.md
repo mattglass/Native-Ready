@@ -110,6 +110,13 @@ when core Stitch-backed screens are only `same_family_only`,
 activate a visual-spine task instead, and require source-artwork decisions plus
 simulator screenshot comparison evidence.
 
+Before recording any design-first maturity promotion, run the active
+`ios-visual-spine/scripts/validate_visual_exit.py` with `--repo-root .` and the
+matching `--claim`. Resolve the script from the installed skill directory, not
+from the app repository. A nonzero result blocks promotion and must be reflected
+in the roadmap and baton. Do not rewrite the evidence merely to satisfy the
+validator; repair the visual implementation, evidence, or product decision.
+
 Before closing a `stitch_art_expansion` task, reconcile the operation journal,
 live project screen list, saved artifacts, and `conceptCoverage`. A submitted or
 timed-out mutation is not completion evidence. The task may be `done` only when

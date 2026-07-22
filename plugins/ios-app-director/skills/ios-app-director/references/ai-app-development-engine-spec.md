@@ -220,20 +220,28 @@ The system gets better as these debug loops accumulate because the agent builds 
 
 ## Source-of-Truth Hierarchy
 
-When instructions conflict, prefer this order:
+When instructions conflict, first classify the kind of truth involved. Do not
+use a rough implementation as evidence that the intended design changed.
+
+For operational and product scope:
 
 1. repo-level project instructions
-2. current working implementation
-3. explicit product goals
-4. local design-system docs
-5. roadmap state
-6. conceptual design references
+2. explicit user and product decisions
+3. verified runtime behavior for current-state claims
+4. roadmap and repo-memory state
 
-For UI work:
+For visual UI work on a design-first surface:
 
-1. live app implementation wins
-2. local design tokens win
-3. Stitch concepts are subordinate unless promoted
+1. explicit user design decisions and accepted tradeoffs
+2. evidence-backed `.stitch/DESIGN.md` and screen implementation packets
+3. active Stitch references and extracted source artwork
+4. established native tokens that have already passed the applicable visual gate
+5. the current native implementation as evidence of adoption or divergence
+
+Verified native behavior remains authoritative for what the app currently does.
+It does not automatically become the intended visual target merely because it
+was implemented first. Record intentional design divergence as an explicit
+decision or visual-spine task.
 
 For feature work:
 

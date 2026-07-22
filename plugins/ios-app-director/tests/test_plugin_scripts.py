@@ -62,6 +62,10 @@ template_deployer = load_script(
     "ready_template_deployer",
     "skills/ios-app-bootstrap/scripts/deploy_ready_template.py",
 )
+visual_exit = load_script(
+    "ready_validate_visual_exit",
+    "skills/ios-visual-spine/scripts/validate_visual_exit.py",
+)
 
 
 def baton_text(platform: str = "iPhone and iPad") -> str:
@@ -108,6 +112,171 @@ class BatonValidatorTests(unittest.TestCase):
         )
         self.assertEqual(errors, [])
         self.assertEqual(fields["platform"], "[PRIMARY_PLATFORM]")
+
+
+class VisualExitValidatorTests(unittest.TestCase):
+    def make_repo(self, root: Path, *, target: str = "prototype_visual_gate") -> None:
+        stitch = root / ".stitch"
+        evidence = stitch / "evidence" / "VIS-001"
+        intake = stitch / "intake" / "screenshots"
+        evidence.mkdir(parents=True)
+        intake.mkdir(parents=True)
+        (evidence / "home.png").write_bytes(b"simulator evidence")
+        (intake / "home.png").write_bytes(b"stitch reference")
+        (stitch / "visual-parity-audit.md").write_text(
+            """# Visual Parity Audit
+
+## Summary
+- overall_status: pass
+- decision: promote_maturity
+- blocking_screens: none
+
+## Core Screen Matrix
+
+| Screen | Stitch reference | Source assets | Native destination | Simulator evidence | Parity target | Status | Blocking gaps |
+|---|---|---|---|---|---|---|---|
+| Home | .stitch/intake/screenshots/home.png | none | App/HomeView.swift | .stitch/evidence/VIS-001/home.png | prototype_visual_gate | pass | none |
+
+## Promotion Decision
+
+Prototype visual exit gate:
+- pass
+""",
+            encoding="utf-8",
+        )
+        (stitch / "metadata.json").write_text(
+            json.dumps(
+                {
+                    "designAdoptions": [
+                        {
+                            "task": "VIS-001",
+                            "status": "prototype_visual_gate_passed",
+                            "nativeSurfaces": ["Home"],
+                        }
+                    ],
+                    "visualParityAudits": [
+                        {
+                            "task": "VIS-001",
+                            "screen": "Home",
+                            "referenceScreens": [
+                                ".stitch/intake/screenshots/home.png"
+                            ],
+                            "simulatorEvidence": [
+                                ".stitch/evidence/VIS-001/home.png"
+                            ],
+                            "visualParityTarget": target,
+                            "status": "pass",
+                            "blockingGaps": [],
+                        }
+                    ],
+                    "conceptCoverage": [
+                        {
+                            "role": "Primary home",
+                            "required": True,
+                            "status": "live",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    def test_accepts_complete_prototype_exit_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.make_repo(root)
+            errors, warnings = visual_exit.validate(root, "prototype_exit")
+            self.assertEqual(errors, [])
+            self.assertEqual(warnings, [])
+
+    def test_rejects_missing_audit_even_when_metadata_claims_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.make_repo(root)
+            (root / ".stitch/visual-parity-audit.md").unlink()
+            errors, _ = visual_exit.validate(root, "prototype_exit")
+            self.assertTrue(
+                any("missing .stitch/visual-parity-audit.md" in error for error in errors)
+            )
+
+    def test_rejects_same_family_evidence_for_maturity_promotion(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.make_repo(root, target="same_product_family")
+            errors, _ = visual_exit.validate(root, "prototype_exit")
+            self.assertTrue(
+                any("cannot support maturity promotion" in error for error in errors)
+            )
+
+    def test_rejects_legacy_same_family_outcome_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.make_repo(root)
+            metadata_path = root / ".stitch/metadata.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            parity = metadata["visualParityAudits"][0]
+            parity.pop("visualParityTarget")
+            parity["outcome"] = "same_product_family_passed"
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+            errors, _ = visual_exit.validate(root, "prototype_exit")
+            self.assertTrue(
+                any("cannot support maturity promotion" in error for error in errors)
+            )
+
+    def test_rejects_unresolved_design_adoption_and_required_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.make_repo(root)
+            metadata_path = root / ".stitch/metadata.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["designAdoptions"][0]["status"] = "generic_substitute"
+            metadata["conceptCoverage"][0]["status"] = "missing"
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+            errors, _ = visual_exit.validate(root, "prototype_exit")
+            self.assertTrue(any("generic_substitute" in error for error in errors))
+            self.assertTrue(
+                any("required concept coverage is missing" in error for error in errors)
+            )
+
+    def test_requires_decisions_for_extracted_source_artwork(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.make_repo(root)
+            assets = root / ".stitch/intake/assets"
+            assets.mkdir()
+            (assets / "hero.jpg").write_bytes(b"source artwork")
+            (root / ".stitch/intake/image-asset-manifest.json").write_text(
+                json.dumps(
+                    {
+                        "assets": [
+                            {"path": ".stitch/intake/assets/hero.jpg"}
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            errors, _ = visual_exit.validate(root, "prototype_exit")
+            self.assertTrue(
+                any("missing Source Artwork Decisions" in error for error in errors)
+            )
+            self.assertTrue(
+                any("no decision for source asset" in error for error in errors)
+            )
+
+    def test_rejects_an_under_scoped_core_screen_matrix(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.make_repo(root)
+            metadata_path = root / ".stitch/metadata.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            second_audit = dict(metadata["visualParityAudits"][0])
+            second_audit["screen"] = "Primary detail"
+            metadata["visualParityAudits"].append(second_audit)
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+            errors, _ = visual_exit.validate(root, "prototype_exit")
+            self.assertTrue(
+                any("fewer rows than metadata.visualParityAudits" in error for error in errors)
+            )
 
 
 class FeatureMapTests(unittest.TestCase):
@@ -1172,7 +1341,7 @@ class DistributionContractTests(unittest.TestCase):
         xcodebuildmcp = mcp["mcpServers"]["xcodebuildmcp"]
         cloudflare = mcp["mcpServers"]["cloudflare-api"]
 
-        self.assertEqual(manifest["version"], "0.5.5")
+        self.assertEqual(manifest["version"], "0.5.6")
         self.assertEqual(manifest["mcpServers"], "./.mcp.json")
         self.assertEqual(
             xcodebuildmcp["env"]["XCODEBUILDMCP_ENABLED_WORKFLOWS"],
@@ -1396,6 +1565,53 @@ class DistributionContractTests(unittest.TestCase):
             'XCODEBUILDMCP_ENABLED_WORKFLOWS = "simulator,ui-automation,debugging"',
             config,
         )
+
+    def test_design_first_authority_cannot_be_inverted_by_early_swiftui(self) -> None:
+        ready_root = PLUGIN_ROOT.parent.parent
+        banned_claims = (
+            "live app implementation wins",
+            "live implementation when it exists, then this document",
+            "keep live SwiftUI tokens authoritative once implementation exists",
+            "treat conceptual design as subordinate to the live implementation",
+            "Do not assume conceptual designs outrank the live implementation",
+        )
+        checked_paths = [
+            ready_root / "AGENTS.md",
+            ready_root / ".stitch/DESIGN.md",
+            ready_root / "docs/app-build-spec.md",
+            ready_root / "docs/ai-app-development-engine-spec.md",
+            PLUGIN_ROOT / "skills/stitch-ios-intake/SKILL.md",
+            PLUGIN_ROOT
+            / "skills/stitch-ios-intake/references/design-system-synthesis.md",
+            PLUGIN_ROOT
+            / "skills/ios-app-director/references/design-intake-policy.md",
+        ]
+        for path in checked_paths:
+            with self.subTest(path=path.relative_to(ready_root)):
+                document = path.read_text(encoding="utf-8")
+                for claim in banned_claims:
+                    self.assertNotIn(claim, document)
+                self.assertTrue(
+                    "intended visual" in document
+                    or "visual-intent" in document.lower()
+                    or "design authority" in document
+                    or "adoption evidence" in document
+                )
+
+        validator = (
+            PLUGIN_ROOT
+            / "skills/ios-visual-spine/scripts/validate_visual_exit.py"
+        )
+        self.assertTrue(validator.is_file())
+        self.assertTrue(validator.stat().st_mode & 0o111)
+        for skill in (
+            PLUGIN_ROOT / "skills/ios-visual-spine/SKILL.md",
+            PLUGIN_ROOT / "skills/ios-app-director/SKILL.md",
+            PLUGIN_ROOT / "skills/ios-feature-closeout/SKILL.md",
+        ):
+            self.assertIn(
+                "validate_visual_exit.py", skill.read_text(encoding="utf-8")
+            )
 
     def test_distribution_excludes_retired_or_foreign_skill_names(self) -> None:
         ready_root = PLUGIN_ROOT.parent.parent

@@ -1,6 +1,9 @@
 # Design System: [APP_NAME]
 
-> **Source of truth:** live implementation when it exists, then this document.
+> **Visual source of truth:** explicit user decisions, then evidence-backed
+> Stitch references, extracted artwork, and this document. Live implementation
+> records current adoption evidence; it becomes visual authority only after
+> acceptance or the applicable visual gate passes.
 > **Evidence:** `[LIVE_TOKENS / USER_DECISIONS / STITCH_PROJECT / INTAKE_PATHS]`
 > **Confidence:** `[OBSERVED / MIXED / PROPOSED]`
 

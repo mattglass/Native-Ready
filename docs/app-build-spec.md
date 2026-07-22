@@ -111,7 +111,9 @@ Important working rules:
 - treat `AGENTS.md` as the repository's operational instructions
 - use `docs/app-build-spec.md` as the product brief
 - use `.stitch/APP.md`, `.stitch/DESIGN.md`, `.stitch/ROADMAP.md`, `.stitch/next-prompt.md`, and `.stitch/metadata.json` as repo-local operating memory
-- treat conceptual design as subordinate to the live implementation unless explicitly promoted
+- separate current-state truth from design authority: verified implementation
+  defines existing behavior, while approved design-first references define the
+  intended visual target until explicitly accepted, rejected, or superseded
 - validate meaningful changes through the appropriate build/run/debug loop
 - update roadmap state, baton state, evidence state, and risk state before finishing
 

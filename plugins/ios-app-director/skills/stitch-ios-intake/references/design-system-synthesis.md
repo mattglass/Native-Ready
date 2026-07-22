@@ -12,20 +12,25 @@ Refresh when:
 - a live Stitch project establishes the first coherent visual system
 - multiple adopted screens consistently change a token or component rule
 - the user makes a product-level design decision
-- live native implementation becomes more authoritative than earlier concepts
+- a user-accepted or visual-gate-passing native implementation supersedes an
+  earlier concept
 
 Do not rewrite it for a one-off experiment, rejected screen, or decorative
 variation.
 
-## Evidence Order
+## Visual-Intent Evidence Order
 
-1. live native design tokens and shipped behavior
-2. explicit user decisions
-3. active Stitch project metadata and design-system fields
-4. representative live Stitch screens
-5. saved screenshots and exported HTML/CSS
-6. intake and image-asset manifests
+1. explicit user design decisions and accepted tradeoffs
+2. active Stitch project metadata and design-system fields
+3. representative live Stitch screens
+4. saved screenshots, exported HTML/CSS, and extracted source artwork
+5. accepted screen packets and native tokens that passed the applicable visual gate
+6. current native tokens as evidence of adoption or divergence
 7. older prompt notes and cautious proposals
+
+Verified native behavior remains authoritative for current-state and runtime
+claims. This ordering applies to intended visual identity; it prevents an early
+generic scaffold from silently redefining a design-first product.
 
 Label uncertain or newly inferred rules as proposed. Never invent exact hex,
 font, spacing, metric, or accessibility claims merely to fill a section.
@@ -66,8 +71,11 @@ link to the intake record instead of copying its full inventory.
 - Ban fabricated metrics, social proof, compliance claims, and services.
 - Avoid generic AI copy, empty dashboard tiles, and arbitrary visual clichés.
 
-## Native Source Of Truth
+## Native Reconciliation
 
 Once SwiftUI implementation exists, reconcile the document with live tokens and
-components. Concepts may propose changes, but they do not silently override the
-native system. Record intentional divergences as roadmap or visual-spine work.
+components, but classify the result as adoption, intentional divergence, or a
+remaining gap. The implementation becomes visual authority only after the user
+accepts the divergence or the relevant screen passes its visual gate. Record
+unaccepted differences as roadmap or visual-spine work; never promote scaffold
+defaults merely because they were implemented first.

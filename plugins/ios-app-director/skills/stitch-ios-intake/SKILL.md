@@ -179,7 +179,9 @@ placeholders or the intake reveals a material design-system change.
 - use exact tokens only when evidence supports them
 - capture native behavior, states, artwork, motion, accessibility, and banned
   patterns, not just colors and typography
-- keep live SwiftUI tokens authoritative once implementation exists
+- keep verified SwiftUI behavior authoritative for current-state claims, but
+  treat live tokens as adoption evidence until the user accepts them or the
+  relevant design-first surface passes its visual gate
 
 Do not rewrite a stable design system merely because one new screen differs.
 Record the difference as a question or candidate direction until the evidence
