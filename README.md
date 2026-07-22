@@ -156,7 +156,7 @@ repo-root/
 7. Use `ios-feature-closeout` to reconcile roadmap, baton, evidence, risk, and next-step handoff after meaningful work.
 
 ## Install iOS App Director globally
-NATIVE READY publishes the complete 10-skill suite through the repository's standard Codex marketplace. Add the public GitHub repository as a marketplace, confirm that Codex can see the package, and install it:
+The NATIVE READY source repository publishes the complete 10-skill suite through its standard Codex marketplace. Add the public GitHub repository as a marketplace, confirm that Codex can see the package, and install it:
 
 ```bash
 codex plugin marketplace add mattglass/Native-Ready --ref main
@@ -169,7 +169,9 @@ Start a new Codex task after installation so the bundled skills are loaded. Do n
 To refresh an existing installation after a new release, run `codex plugin marketplace upgrade repo-local-plugins`, then reinstall `ios-app-director@repo-local-plugins` and start a new task.
 
 ### Local bundled-plugin testing
-Developers working from a checkout can use `.agents/plugins/marketplace.opt-in-ios-app-director.json` for isolated local packaging tests. The standard `.agents/plugins/marketplace.json` is the GitHub-installable catalog and points at the same `plugins/ios-app-director/` package.
+Developers working from the full NATIVE READY source checkout can use `.agents/plugins/marketplace.opt-in-ios-app-director.json` for isolated local packaging tests. The source repository's standard `.agents/plugins/marketplace.json` is the GitHub-installable catalog and points at the same `plugins/ios-app-director/` package.
+
+App repos produced from the bundled bootstrap template intentionally receive an empty standard marketplace, so they do not advertise a second local plugin after a global installation. Their opt-in marketplace remains available for isolated testing when the local `plugins/ios-app-director/` package is also present.
 
 The plugin manifest is skills-only by default. The included `.mcp.json` is optional reference wiring for XcodeBuildMCP, Cloudflare MCP, and Stitch MCP; installing the plugin does not enable those servers automatically.
 
@@ -210,4 +212,4 @@ internal setup coordinator and other NATIVE READY specialists to provide:
 - after bootstrap, validate the baton normally so unresolved placeholders fail; use `--allow-placeholders` only when validating the distributable source template itself
 
 ## Local plugin note
-This template ships a bundled repo-local plugin copy and a standard marketplace entry for global installation from GitHub. The separate opt-in marketplace file remains available for isolated local packaging tests.
+The NATIVE READY source repository ships a bundled repo-local plugin copy and a standard marketplace entry for global installation from GitHub. The generated-app template keeps its standard marketplace empty. Its separate opt-in marketplace remains available for isolated local packaging tests when the bundled package is present.

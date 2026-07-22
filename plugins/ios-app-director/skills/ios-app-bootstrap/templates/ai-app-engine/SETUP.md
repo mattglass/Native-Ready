@@ -112,13 +112,15 @@ Use only one copy of each skill. If the same 10 skills were installed manually a
 
 ### Bundled plugin: packaging or isolated testing
 
-The same 10 skills are packaged in:
+The NATIVE READY source repository packages the same 10 skills in:
 
 ```text
 plugins/ios-app-director/
 ```
 
-The standard `.agents/plugins/marketplace.json` exposes this package for the global installation commands above. Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only for isolated local packaging tests, and do not activate it alongside a global installation.
+The source repository's standard `.agents/plugins/marketplace.json` exposes this package for the global installation commands above. App repos produced from the bundled bootstrap template intentionally receive an empty standard marketplace, so they do not advertise another local copy after a global installation.
+
+Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only for isolated local packaging tests in a checkout that also contains `plugins/ios-app-director/`, and do not activate it alongside a global installation.
 
 The bundled plugin is skills-only by default; `plugins/ios-app-director/.mcp.json` is reference wiring rather than automatically enabled configuration.
 
