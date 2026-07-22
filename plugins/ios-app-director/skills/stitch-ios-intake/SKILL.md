@@ -11,6 +11,10 @@ The output is not implementation code. The output is a clean local intake record
 
 Use it in refresh mode when an existing app already has memory files but the live Stitch project has new or changed screens.
 
+Resolve `<stitch-ios-intake-skill-dir>` as the directory containing this active
+`SKILL.md`. Run bundled helper scripts from that directory; do not assume the
+app repository contains a local plugin source checkout.
+
 ## Read First
 
 If present, read:
@@ -66,7 +70,7 @@ When a new Stitch screen exposes screenshot or HTML download URLs, save them thr
 Preferred queued form:
 
 ```bash
-python3 plugins/ios-app-director/skills/stitch-ios-intake/scripts/save_stitch_screen_artifacts.py --repo-root . --from-queue
+python3 <stitch-ios-intake-skill-dir>/scripts/save_stitch_screen_artifacts.py --repo-root . --from-queue
 ```
 
 Before running it, write `.stitch/intake/pending-stitch-artifacts.json`:
@@ -88,7 +92,7 @@ Before running it, write `.stitch/intake/pending-stitch-artifacts.json`:
 Direct single-screen form:
 
 ```bash
-python3 plugins/ios-app-director/skills/stitch-ios-intake/scripts/save_stitch_screen_artifacts.py \
+python3 <stitch-ios-intake-skill-dir>/scripts/save_stitch_screen_artifacts.py \
   --repo-root . \
   --slug 13-achievement-unlocked \
   --screenshot-url "$SCREENSHOT_URL" \
@@ -98,15 +102,13 @@ python3 plugins/ios-app-director/skills/stitch-ios-intake/scripts/save_stitch_sc
 
 The script creates intake folders, downloads artifacts, validates PNG/HTML content, records source URLs in `.stitch/intake/artifact-sources.json`, clears the pending queue after a successful queued run, and rebuilds `.stitch/intake/intake-manifest.json` and `.stitch/intake/intake-manifest.md`.
 
-If the repo-local plugin path is not available, run the bundled `scripts/save_stitch_screen_artifacts.py` from this skill directory.
-
 ### 4. Extract HTML Image Assets
 
 After Stitch HTML files are saved, extract referenced `<img>` artwork into a
 stable local asset manifest:
 
 ```bash
-python3 plugins/ios-app-director/skills/stitch-ios-intake/scripts/extract_stitch_image_assets.py --repo-root .
+python3 <stitch-ios-intake-skill-dir>/scripts/extract_stitch_image_assets.py --repo-root .
 ```
 
 The script reads `.stitch/intake/html/*.html`, downloads image URLs into
@@ -125,10 +127,10 @@ and create an explicit generated-asset or art-direction follow-up.
 Before inspecting local screenshots, exported HTML, or new intake paths with shell commands, build or refresh the stable intake manifest:
 
 ```bash
-python3 plugins/ios-app-director/skills/stitch-ios-intake/scripts/build_intake_manifest.py --repo-root .
+python3 <stitch-ios-intake-skill-dir>/scripts/build_intake_manifest.py --repo-root .
 ```
 
-If the repo-local plugin path is not available, run the bundled `scripts/build_intake_manifest.py` from this skill directory. If the script is unavailable, use stable directory-level discovery such as `rg --files .stitch/intake | sort`.
+If the script is unavailable, use stable directory-level discovery such as `rg --files .stitch/intake | sort`.
 
 Do not ask for or rely on shell approvals that enumerate each newly named screenshot or HTML file, such as `ls -lh .stitch/intake/screenshots/11-new-screen.png ...`. New Stitch assets should flow through `.stitch/intake/intake-manifest.json` and `.stitch/intake/intake-manifest.md`.
 

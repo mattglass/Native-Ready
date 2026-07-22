@@ -98,6 +98,17 @@ codex plugin add ios-app-director@repo-local-plugins
 
 Start a new Codex task after installation. Cloudflare MCP is bundled but disabled by default, and Stitch authentication is deferred until Stitch is used, so installation does not require optional credentials. Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only for isolated local package testing, and avoid activating it alongside the global plugin or manual copies of the same skills.
 
+### Bootstrap from the installed plugin alone
+
+Create or open an empty target app folder as the Codex workspace, provide the
+app brief, and invoke `$ios-app-bootstrap`. The active bootstrap skill resolves
+its own installed directory and deploys
+`templates/ai-app-engine/` into the app repo before preflight. The merge creates
+missing files, leaves identical files unchanged, and preserves differing user
+files by default. It intentionally does not copy `plugins/ios-app-director/`
+into the generated app repo, so the installed plugin remains the single skill
+and MCP source.
+
 ## Connect Google Stitch
 
 Stitch uses API-key authentication for the quick personal setup. Codex's generic

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -55,6 +57,10 @@ stitch_operations = load_script(
 bootstrap_receipt = load_script(
     "ready_bootstrap_receipt",
     "skills/ios-app-bootstrap/scripts/render_bootstrap_receipt.py",
+)
+template_deployer = load_script(
+    "ready_template_deployer",
+    "skills/ios-app-bootstrap/scripts/deploy_ready_template.py",
 )
 
 
@@ -639,6 +645,91 @@ class BootstrapReceiptTests(unittest.TestCase):
         self.assertEqual(args.toolchain_status, "unsupported_toolchain")
 
 
+class TemplateDeploymentTests(unittest.TestCase):
+    def test_deploys_complete_hidden_file_template_and_is_idempotent(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory) / "NewNativeApp"
+            first = template_deployer.deploy_template(repo_root)
+            expected_files = {
+                path.relative_to(template_deployer.TEMPLATE_ROOT).as_posix()
+                for path in template_deployer.template_files()
+            }
+
+            self.assertEqual(set(first["created"]), expected_files)
+            self.assertTrue((repo_root / ".gitignore").is_file())
+            marketplace = json.loads(
+                (repo_root / ".agents/plugins/marketplace.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(marketplace["plugins"], [])
+            self.assertFalse((repo_root / "plugins/ios-app-director").exists())
+
+            second = template_deployer.deploy_template(repo_root)
+            self.assertEqual(second["created"], [])
+            self.assertEqual(second["preserved"], [])
+            self.assertEqual(set(second["unchanged"]), expected_files)
+
+    def test_preserves_differing_files_unless_overwrite_is_explicit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory) / "ExistingApp"
+            template_deployer.deploy_template(repo_root)
+            readme = repo_root / "README.md"
+            readme.write_text("User-owned README\n", encoding="utf-8")
+
+            preserved = template_deployer.deploy_template(repo_root)
+            self.assertIn("README.md", preserved["preserved"])
+            self.assertEqual(readme.read_text(encoding="utf-8"), "User-owned README\n")
+
+            overwritten = template_deployer.deploy_template(repo_root, overwrite=True)
+            self.assertIn("README.md", overwritten["overwritten"])
+            self.assertEqual(
+                readme.read_bytes(),
+                (template_deployer.TEMPLATE_ROOT / "README.md").read_bytes(),
+            )
+
+    def test_preserves_symlinked_destinations_even_with_overwrite(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            repo_root = root / "ExistingApp"
+            outside = root / "outside"
+            repo_root.mkdir()
+            outside.mkdir()
+            (repo_root / "docs").symlink_to(outside, target_is_directory=True)
+
+            result = template_deployer.deploy_template(repo_root, overwrite=True)
+
+            self.assertIn("docs/app-build-spec.md", result["preserved"])
+            self.assertFalse((outside / "app-build-spec.md").exists())
+
+    def test_relocated_installed_skill_can_deploy_without_source_repo(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            installed_skill = root / "codex-cache/ios-app-director/skills/ios-app-bootstrap"
+            shutil.copytree(
+                PLUGIN_ROOT / "skills/ios-app-bootstrap",
+                installed_skill,
+            )
+            repo_root = root / "standalone-app"
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(installed_skill / "scripts/deploy_ready_template.py"),
+                    "--repo-root",
+                    str(repo_root),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("Deployment complete", completed.stdout)
+            self.assertTrue((repo_root / "AGENTS.md").is_file())
+            self.assertTrue((repo_root / ".stitch/next-prompt.md").is_file())
+            self.assertTrue((repo_root / "docs/app-build-spec.md").is_file())
+            self.assertFalse((repo_root / "plugins").exists())
+
+
 class DistributionContractTests(unittest.TestCase):
     def test_plugin_declares_stitch_api_key_mcp_contract(self) -> None:
         ready_root = PLUGIN_ROOT.parent.parent
@@ -650,6 +741,7 @@ class DistributionContractTests(unittest.TestCase):
         xcodebuildmcp = mcp["mcpServers"]["xcodebuildmcp"]
         cloudflare = mcp["mcpServers"]["cloudflare-api"]
 
+        self.assertEqual(manifest["version"], "0.5.4")
         self.assertEqual(manifest["mcpServers"], "./.mcp.json")
         self.assertEqual(
             xcodebuildmcp["env"]["XCODEBUILDMCP_ENABLED_WORKFLOWS"],
@@ -812,31 +904,51 @@ class DistributionContractTests(unittest.TestCase):
     def test_root_and_nested_template_operating_files_match(self) -> None:
         ready_root = PLUGIN_ROOT.parent.parent
         nested = PLUGIN_ROOT / "skills/ios-app-bootstrap/templates/ai-app-engine"
-        shared = [
-            "AGENTS.md",
-            "README.md",
-            "SETUP.md",
-            ".agents/plugins/marketplace.opt-in-ios-app-director.json",
-            ".codex/config.toml",
-            ".stitch/APP.md",
-            ".stitch/DESIGN.md",
-            ".stitch/ROADMAP.md",
-            ".stitch/next-prompt.md",
-            ".stitch/metadata.json",
-            "docs/ai-app-development-engine-spec.md",
-            "docs/app-build-spec.md",
-            "docs/bootstrap-prompt.md",
-            "docs/definition-of-done.md",
-            "docs/design-first-setup-prompt.md",
-            "docs/example-build-spec.md",
-            "workers/README.md",
-        ]
+        intentional_template_exceptions = {
+            ".agents/plugins/marketplace.json",
+            "LICENSES/NATIVE-READY-APACHE-2.0.txt",
+            "LICENSES/NATIVE-READY-NOTICE.txt",
+            "LICENSING.md",
+        }
+        template_paths = {
+            path.relative_to(nested).as_posix()
+            for path in template_deployer.template_files(nested)
+        }
+        shared = sorted(template_paths - intentional_template_exceptions)
+
+        self.assertTrue(intentional_template_exceptions <= template_paths)
         for relative_path in shared:
             with self.subTest(path=relative_path):
+                self.assertTrue((ready_root / relative_path).is_file())
                 self.assertEqual(
                     (ready_root / relative_path).read_bytes(),
                     (nested / relative_path).read_bytes(),
                 )
+
+    def test_standalone_skills_do_not_require_repo_local_plugin_scripts(self) -> None:
+        ready_root = PLUGIN_ROOT.parent.parent
+        bootstrap_skill = (
+            PLUGIN_ROOT / "skills/ios-app-bootstrap/SKILL.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("scripts/deploy_ready_template.py", bootstrap_skill)
+
+        hardcoded_commands: list[str] = []
+        for path in (PLUGIN_ROOT / "skills").rglob("*.md"):
+            text = path.read_text(encoding="utf-8")
+            for command in ("python3 plugins/ios-app-director/", "python3 scripts/"):
+                if command in text:
+                    hardcoded_commands.append(
+                        f"{path.relative_to(PLUGIN_ROOT)}: {command}"
+                    )
+        self.assertEqual(hardcoded_commands, [])
+
+        config = (ready_root / ".codex/config.toml").read_text(encoding="utf-8")
+        self.assertIn("[mcp_servers.xcodebuildmcp]", config)
+        self.assertNotIn("[mcp_servers.XcodeBuildMCP]", config)
+        self.assertIn(
+            'XCODEBUILDMCP_ENABLED_WORKFLOWS = "simulator,ui-automation,debugging"',
+            config,
+        )
 
     def test_distribution_excludes_retired_or_foreign_skill_names(self) -> None:
         ready_root = PLUGIN_ROOT.parent.parent

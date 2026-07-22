@@ -23,31 +23,35 @@ prefer extracting them into `.stitch/intake/assets/` and referencing
 ## Stable Stitch artifact discovery
 When Stitch evidence changes, inventory `.stitch/intake/` through a stable manifest before feature-map or roadmap work.
 
+Resolve `<stitch-ios-intake-skill-dir>` as the directory containing the active
+`stitch-ios-intake/SKILL.md`. Run its bundled scripts from there; do not assume
+the app repository contains the plugin source.
+
 When new screenshot or HTML URLs need to be saved, use:
 
 ```bash
-python3 plugins/ios-app-director/skills/stitch-ios-intake/scripts/save_stitch_screen_artifacts.py --repo-root . --from-queue
+python3 <stitch-ios-intake-skill-dir>/scripts/save_stitch_screen_artifacts.py --repo-root . --from-queue
 ```
 
 Store the changing URLs in `.stitch/intake/pending-stitch-artifacts.json` before running the command. Use the direct `--slug --screenshot-url --html-url` form only when queueing is unnecessary.
 
-Preferred local-plugin command:
+Preferred manifest command:
 
 ```bash
-python3 plugins/ios-app-director/skills/stitch-ios-intake/scripts/build_intake_manifest.py --repo-root .
+python3 <stitch-ios-intake-skill-dir>/scripts/build_intake_manifest.py --repo-root .
 ```
 
 When saved HTML contains product-critical `<img>` artwork, also run:
 
 ```bash
-python3 plugins/ios-app-director/skills/stitch-ios-intake/scripts/extract_stitch_image_assets.py --repo-root .
+python3 <stitch-ios-intake-skill-dir>/scripts/extract_stitch_image_assets.py --repo-root .
 ```
 
 Use `.stitch/intake/image-asset-manifest.*` as the stable source-artwork index.
 Generated artwork is a fallback or product decision, not proof that available
 Stitch source artwork has been adopted.
 
-If that path is unavailable, use the bundled `stitch-ios-intake` script from the active skill directory, or fall back to `rg --files .stitch/intake | sort`.
+If a bundled script is unavailable, fall back to `rg --files .stitch/intake | sort`.
 
 Avoid commands that enumerate exact new asset paths such as `mkdir -p ... && curl ... && file .stitch/intake/screenshots/11-new-screen.png ...`. New screenshot and HTML filenames are expected to change; the save script and manifest are the reusable discovery surfaces.
 

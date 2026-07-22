@@ -11,6 +11,10 @@ artwork, variants, or screen states to preserve the product's visual world.
 
 The output is a Stitch project and screen set that can be analyzed by `stitch-ios-intake` and `ios-feature-map`. Do not implement Swift from this skill.
 
+Resolve `<stitch-ios-concept-builder-skill-dir>` as the directory containing
+this active `SKILL.md`. Run its operation-journal helper from that directory;
+do not assume the app repo contains plugin scripts.
+
 ## Read First
 
 Read:
@@ -97,7 +101,8 @@ When Stitch MCP tools are available:
 
 Before the first project-specific read or mutation, follow
 `references/stitch-operation-policy.md` and establish the operation journal with
-`scripts/stitch_operation_journal.py` when available.
+`<stitch-ios-concept-builder-skill-dir>/scripts/stitch_operation_journal.py`
+when available.
 
 - Adopt a project ID only from user input, repo metadata, an intentional exact
   discovery match, or the successful current-run `create_project` result.

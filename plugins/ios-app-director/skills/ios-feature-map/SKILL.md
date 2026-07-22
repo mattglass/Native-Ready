@@ -9,6 +9,10 @@ Use this skill to replace the manual "paste a giant feature plan into APP.md" st
 
 Use it again after `stitch-ios-intake` refreshes an existing app with new Stitch screens.
 
+Resolve `<ios-feature-map-skill-dir>` as the directory containing this active
+`SKILL.md`. Run its bundled helper from that directory rather than assuming the
+app repo contains the script.
+
 ## Read First
 
 Read:
@@ -118,7 +122,7 @@ Before writing the map, check:
 Use the helper script when possible:
 
 ```bash
-python3 scripts/replace_app_feature_inventory.py \
+python3 <ios-feature-map-skill-dir>/scripts/replace_app_feature_inventory.py \
   --app-md /path/to/repo/.stitch/APP.md \
   --feature-map /path/to/generated-feature-map.md
 ```

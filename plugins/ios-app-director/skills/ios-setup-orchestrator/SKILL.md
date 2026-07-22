@@ -165,8 +165,9 @@ Each task needs:
   imagery, custom component style, or a distinctive mood
 
 After writing `.stitch/next-prompt.md`, validate baton frontmatter with
-`ios-app-director/scripts/validate_baton_frontmatter.py --repo-root .` when the
-script is available.
+`python3 <ios-app-director-skill-dir>/scripts/validate_baton_frontmatter.py --repo-root .`,
+where `<ios-app-director-skill-dir>` is the directory containing the active
+`ios-app-director/SKILL.md`. Do not assume the script lives in the app repo.
 
 ### 6. Create Or Confirm The Native Scaffold
 
