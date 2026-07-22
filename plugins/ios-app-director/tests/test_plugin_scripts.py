@@ -311,6 +311,27 @@ class StitchOperationJournalTests(unittest.TestCase):
             requested_screen_roles=requested_screen_roles,
         )
 
+    def reconcile_timeout(self, journal, operation_id="welcome-001"):
+        stitch_operations.transition_operation(
+            journal,
+            operation_id,
+            "polling",
+            failure_class="timeout_or_connection",
+        )
+        stitch_operations.transition_operation(
+            journal,
+            operation_id,
+            "ambiguous_timeout",
+        )
+        return stitch_operations.record_final_reconciliation(
+            journal,
+            operation_id,
+            ["existing-screen"],
+            "2026-07-22T12:00:00Z",
+            "no_matching_output",
+            True,
+        )
+
     def test_rejects_second_active_project_after_successful_creation(self) -> None:
         journal = self.journal()
         with self.assertRaises(stitch_operations.JournalError):
@@ -395,6 +416,14 @@ class StitchOperationJournalTests(unittest.TestCase):
             "ambiguous_timeout",
             failure_class="timeout_or_connection",
         )
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "at least one recorded poll"
+        ):
+            stitch_operations.transition_operation(
+                journal,
+                "welcome-001",
+                "replacement_authorized",
+            )
         with self.assertRaises(stitch_operations.JournalError):
             stitch_operations.prepare_operation(
                 journal,
@@ -404,6 +433,28 @@ class StitchOperationJournalTests(unittest.TestCase):
                 "welcome",
                 prompt="Generate the welcome screen again.",
             )
+        stitch_operations.transition_operation(journal, "welcome-001", "polling")
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "ambiguous_timeout",
+        )
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "final same-project reconciliation"
+        ):
+            stitch_operations.transition_operation(
+                journal,
+                "welcome-001",
+                "replacement_authorized",
+            )
+        stitch_operations.record_final_reconciliation(
+            journal,
+            "welcome-001",
+            ["existing-screen"],
+            "2026-07-22T12:00:00Z",
+            "no_matching_output",
+            True,
+        )
         stitch_operations.transition_operation(
             journal,
             "welcome-001",
@@ -488,9 +539,29 @@ class StitchOperationJournalTests(unittest.TestCase):
 
         self.assertEqual(operation["recovery"]["pollCount"], 2)
         self.assertEqual(
-            operation["recovery"]["decisionStatus"], "autonomous_recovery_ready"
+            operation["recovery"]["decisionStatus"],
+            "final_reconciliation_required",
         )
         self.assertIsNotNone(operation["recovery"]["decisionRequiredAt"])
+        _, warnings, _ = stitch_operations.audit_journal(journal)
+        immediate = [
+            item
+            for item in warnings
+            if item.startswith("FINAL RECONCILIATION REQUIRED:")
+        ]
+        self.assertEqual(len(immediate), 1)
+
+        operation = stitch_operations.record_final_reconciliation(
+            journal,
+            "welcome-001",
+            ["existing-screen"],
+            "2026-07-22T12:00:00Z",
+            "no_matching_output",
+            True,
+        )
+        self.assertEqual(
+            operation["recovery"]["decisionStatus"], "autonomous_recovery_ready"
+        )
         _, warnings, _ = stitch_operations.audit_journal(journal)
         immediate = [
             item for item in warnings if item.startswith("AUTONOMOUS RECOVERY:")
@@ -502,13 +573,28 @@ class StitchOperationJournalTests(unittest.TestCase):
         journal = self.journal(replacement_mode="manual")
         self.prepare(journal)
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
-        operation = stitch_operations.transition_operation(
+        stitch_operations.transition_operation(
             journal,
             "welcome-001",
-            "ambiguous_timeout",
+            "polling",
             failure_class="timeout_or_connection",
         )
+        operation = stitch_operations.transition_operation(
+            journal, "welcome-001", "ambiguous_timeout"
+        )
 
+        self.assertEqual(
+            operation["recovery"]["decisionStatus"],
+            "final_reconciliation_required",
+        )
+        operation = stitch_operations.record_final_reconciliation(
+            journal,
+            "welcome-001",
+            ["existing-screen"],
+            "2026-07-22T12:00:00Z",
+            "no_matching_output",
+            True,
+        )
         self.assertEqual(operation["recovery"]["decisionStatus"], "required")
         _, warnings, _ = stitch_operations.audit_journal(journal)
         self.assertTrue(
@@ -518,16 +604,92 @@ class StitchOperationJournalTests(unittest.TestCase):
             )
         )
 
-    def test_default_replacement_budget_stops_a_repeated_timeout(self) -> None:
+    def test_legacy_journal_without_policy_remains_manual(self) -> None:
+        journal = self.journal()
+        del journal["recoveryPolicy"]
+        operation = self.prepare(journal)
+        del operation["request"]
+        del operation["recovery"]
+
+        self.assertEqual(
+            stitch_operations.recovery_policy(journal)["replacementMode"],
+            "manual",
+        )
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        operation = self.reconcile_timeout(journal)
+        self.assertEqual(operation["recovery"]["decisionStatus"], "required")
+
+        stitch_operations.set_recovery_policy(
+            journal,
+            replacement_mode="autonomous",
+        )
+        self.assertEqual(
+            stitch_operations.recovery_policy(journal)["replacementMode"],
+            "autonomous",
+        )
+
+    def test_final_reconciliation_adopts_matching_output(self) -> None:
         journal = self.journal()
         self.prepare(journal)
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
         stitch_operations.transition_operation(
             journal,
             "welcome-001",
-            "ambiguous_timeout",
+            "polling",
             failure_class="timeout_or_connection",
         )
+        stitch_operations.transition_operation(
+            journal, "welcome-001", "ambiguous_timeout"
+        )
+
+        operation = stitch_operations.record_final_reconciliation(
+            journal,
+            "welcome-001",
+            ["existing-screen", "welcome-screen"],
+            "2026-07-22T12:00:00Z",
+            "matching_output",
+            True,
+            matching_screen_ids=["welcome-screen"],
+        )
+
+        self.assertEqual(operation["status"], "succeeded")
+        self.assertEqual(operation["newScreenIds"], ["welcome-screen"])
+        self.assertEqual(
+            operation["recovery"]["finalReconciliation"]["outcome"],
+            "matching_output",
+        )
+
+    def test_truncated_final_reconciliation_cannot_authorize_replacement(self) -> None:
+        journal = self.journal()
+        self.prepare(journal)
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "polling",
+            failure_class="timeout_or_connection",
+        )
+        stitch_operations.transition_operation(
+            journal, "welcome-001", "ambiguous_timeout"
+        )
+
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "truncated.*inconclusive"
+        ):
+            stitch_operations.record_final_reconciliation(
+                journal,
+                "welcome-001",
+                ["existing-screen"],
+                "2026-07-22T12:00:00Z",
+                "no_matching_output",
+                False,
+            )
+
+    def test_default_replacement_budget_stops_a_repeated_timeout(self) -> None:
+        journal = self.journal()
+        self.prepare(journal)
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        self.reconcile_timeout(journal)
         stitch_operations.transition_operation(
             journal, "welcome-001", "replacement_authorized"
         )
@@ -537,12 +699,7 @@ class StitchOperationJournalTests(unittest.TestCase):
             replacement_for="welcome-001",
         )
         stitch_operations.transition_operation(journal, "welcome-002", "submitted")
-        stitch_operations.transition_operation(
-            journal,
-            "welcome-002",
-            "ambiguous_timeout",
-            failure_class="timeout_or_connection",
-        )
+        self.reconcile_timeout(journal, "welcome-002")
 
         with self.assertRaisesRegex(
             stitch_operations.JournalError, "replacement budget exhausted"
@@ -555,12 +712,7 @@ class StitchOperationJournalTests(unittest.TestCase):
         journal = self.journal(max_replacement_attempts=2)
         self.prepare(journal)
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
-        stitch_operations.transition_operation(
-            journal,
-            "welcome-001",
-            "ambiguous_timeout",
-            failure_class="timeout_or_connection",
-        )
+        self.reconcile_timeout(journal)
         stitch_operations.transition_operation(
             journal, "welcome-001", "replacement_authorized"
         )
@@ -570,12 +722,7 @@ class StitchOperationJournalTests(unittest.TestCase):
             replacement_for="welcome-001",
         )
         stitch_operations.transition_operation(journal, "welcome-002", "submitted")
-        stitch_operations.transition_operation(
-            journal,
-            "welcome-002",
-            "ambiguous_timeout",
-            failure_class="timeout_or_connection",
-        )
+        self.reconcile_timeout(journal, "welcome-002")
         operation = stitch_operations.transition_operation(
             journal, "welcome-002", "replacement_authorized"
         )
@@ -591,12 +738,7 @@ class StitchOperationJournalTests(unittest.TestCase):
             requested_screen_roles=["welcome", "goals"],
         )
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
-        stitch_operations.transition_operation(
-            journal,
-            "welcome-001",
-            "ambiguous_timeout",
-            failure_class="timeout_or_connection",
-        )
+        self.reconcile_timeout(journal)
         stitch_operations.transition_operation(
             journal, "welcome-001", "replacement_authorized"
         )
@@ -652,12 +794,7 @@ class StitchOperationJournalTests(unittest.TestCase):
         journal = self.journal()
         self.prepare(journal)
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
-        stitch_operations.transition_operation(
-            journal,
-            "welcome-001",
-            "ambiguous_timeout",
-            failure_class="timeout_or_connection",
-        )
+        self.reconcile_timeout(journal)
         stitch_operations.transition_operation(
             journal, "welcome-001", "replacement_authorized"
         )

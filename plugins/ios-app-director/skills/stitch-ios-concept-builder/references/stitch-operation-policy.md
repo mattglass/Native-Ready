@@ -58,7 +58,10 @@ contract justifies another policy: `autonomous` replacement mode, one
 replacement attempt per lineage, and a decomposition warning at two requested
 screen roles. Configure different values with the journal's `init` options or
 `configure-recovery` command. Do not raise a replacement limit merely because
-the current limit was exhausted.
+the current limit was exhausted. A journal created before `recoveryPolicy`
+existed retains legacy `manual` behavior; migrate it deliberately with
+`configure-recovery --replacement-mode autonomous` rather than silently
+changing an unresolved operation's recovery contract.
 
 Schema correction is normal autonomous work. It must not be implemented by
 creating another project or by trying an unrelated project ID.
@@ -120,12 +123,19 @@ same loop iteration as the final poll.
 
 In default `autonomous` mode:
 
-1. Reconcile the same project one final time immediately before replacement.
-2. If matching output appeared, adopt it and stop recovery.
-3. Otherwise transition to `replacement_authorized` under the recorded policy.
-4. Prepare one linked replacement using the persisted prompt and requested
+1. Verify that the journal contains at least one `polling` transition.
+2. Reconcile the same project one final time immediately before replacement.
+   Record its full observed screen ID list and project update time with
+   `record-final-reconciliation`, explicitly classifying both the outcome and
+   whether the response was complete. Treat a truncated response as
+   inconclusive; it cannot support `no_matching_output`.
+3. If matching output appeared, record it as matching, adopt it, and stop
+   recovery.
+4. Only when the final evidence records `no_matching_output`, transition to
+   `replacement_authorized` under the recorded policy.
+5. Prepare one linked replacement using the persisted prompt and requested
    roles, then continue without asking the user.
-5. For a compound request, create focused child operations for disjoint roles;
+6. For a compound request, create focused child operations for disjoint roles;
    autonomous recovery must not repeat the compound mutation.
 
 Use `manual` mode only when the user requests per-mutation control. In that

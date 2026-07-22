@@ -127,10 +127,17 @@ when available.
   current Stitch tool contract, recording each poll in the journal.
 - When polling is exhausted, record `ambiguous_timeout` and act on the configured
   recovery mode immediately; do not finish unrelated work first.
-- Default READY recovery to `autonomous`: perform one final same-project
-  reconciliation, policy-authorize one linked replacement, and continue the
-  loop without asking the user. For a compound request, decompose the recovery
-  into focused screen roles instead of repeating the compound prompt.
+- For every replacement, require at least one recorded poll, then use
+  `record-final-reconciliation` to persist the final same-project screen IDs
+  and project update time. Mark whether the response was complete; truncated
+  output remains inconclusive. Matching output resolves the original operation;
+  only complete, recorded `no_matching_output` evidence permits authorization.
+- Default newly initialized READY journals to `autonomous`: after the required
+  reconciliation, policy-authorize one linked replacement and continue the loop
+  without asking the user. Journals without an explicit recovery policy retain
+  legacy `manual` behavior until configured. For a compound request, decompose
+  the recovery into focused screen roles instead of repeating the compound
+  prompt.
 - Escalate to the user only when recovery mode is `manual`, the bounded recovery
   is exhausted, or the remaining choice changes product intent.
 
