@@ -1,11 +1,13 @@
 {
   "name": "ios-app-director",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A roadmap-driven iOS app development engine with one bootstrap entry point, design-first setup, native SwiftUI scaffolding, simulator validation, receipts, and production-minded delivery loops.",
   "author": {
     "name": "Matt Glass"
   },
   "license": "MIT",
+  "homepage": "https://github.com/mattglass/Native-Ready/tree/main/plugins/ios-app-director",
+  "repository": "https://github.com/mattglass/Native-Ready",
   "keywords": [
     "ios",
     "swiftui",
@@ -24,6 +26,7 @@
     "production-readiness"
   ],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "iOS App Director",
     "shortDescription": "Bootstrap, direct, validate, harden, and ship roadmap-driven iOS app work",
@@ -38,9 +41,11 @@
     "defaultPrompt": [
       "Use iOS App Bootstrap as the single setup entry point for a new NATIVE READY app.",
       "Bootstrap from a Stitch project, screenshots, or product idea through the first simulator launch and receipt.",
+      "Set up Google Stitch for iOS App Director using a secure Stitch API key.",
       "Use iOS App Director to continue delivery from a validated active baton."
     ],
     "brandColor": "#0A84FF",
+    "websiteURL": "https://github.com/mattglass/Native-Ready/tree/main/plugins/ios-app-director#connect-google-stitch",
     "composerIcon": "./assets/ios-app-director-icon.png",
     "logo": "./assets/ios-app-director-logo.png",
     "screenshots": []

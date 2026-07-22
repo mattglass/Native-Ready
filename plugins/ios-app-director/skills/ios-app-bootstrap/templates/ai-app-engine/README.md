@@ -39,9 +39,9 @@ It is designed to support:
 NATIVE READY's complete native loop requires a compatible Mac and Xcode installation,
 an iOS Simulator runtime, Codex Desktop or Codex CLI, one active copy of the 10
 NATIVE READY skills, and XcodeBuildMCP. The automatic design-first path also requires
-a Google account with Stitch access plus an authenticated Stitch MCP
-connection. Cloudflare and Apple Developer Program access are conditional on
-the app's backend and distribution needs.
+a Google account with Stitch access plus a Stitch API key supplied to Codex as
+`STITCH_API_KEY`. Cloudflare and Apple Developer Program access are conditional
+on the app's backend and distribution needs.
 
 See [SETUP.md](SETUP.md) for the current prerequisite matrix, quick checks,
 tool authentication, and the distinction between required and optional
@@ -173,7 +173,7 @@ Developers working from the full NATIVE READY source checkout can use `.agents/p
 
 App repos produced from the bundled bootstrap template intentionally receive an empty standard marketplace, so they do not advertise a second local plugin after a global installation. Their opt-in marketplace remains available for isolated testing when the local `plugins/ios-app-director/` package is also present.
 
-The plugin manifest is skills-only by default. The included `.mcp.json` is optional reference wiring for XcodeBuildMCP, Cloudflare MCP, and Stitch MCP; installing the plugin does not enable those servers automatically.
+The plugin manifest registers its included `.mcp.json` for XcodeBuildMCP, Cloudflare MCP, and Stitch MCP. Cloudflare uses its supported OAuth flow. Stitch reads `STITCH_API_KEY`; the generic OAuth **Authenticate** action is not its setup path. See [SETUP.md](SETUP.md) for the direct Stitch Settings link and secure macOS/CLI setup.
 
 ## Design-first workflow
 The default bootstrap is also the design-first path. Use

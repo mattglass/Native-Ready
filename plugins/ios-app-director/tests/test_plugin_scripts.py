@@ -507,6 +507,38 @@ class BootstrapReceiptTests(unittest.TestCase):
 
 
 class DistributionContractTests(unittest.TestCase):
+    def test_plugin_declares_stitch_api_key_mcp_contract(self) -> None:
+        ready_root = PLUGIN_ROOT.parent.parent
+        manifest = json.loads(
+            (PLUGIN_ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
+        )
+        mcp = json.loads((PLUGIN_ROOT / ".mcp.json").read_text(encoding="utf-8"))
+        stitch = mcp["mcpServers"]["stitch"]
+
+        self.assertEqual(manifest["mcpServers"], "./.mcp.json")
+        self.assertEqual(stitch["url"], "https://stitch.googleapis.com/mcp")
+        self.assertEqual(
+            stitch["env_http_headers"],
+            {"X-Goog-Api-Key": "STITCH_API_KEY"},
+        )
+        self.assertIn("generic OAuth Authenticate action is not", stitch["note"])
+
+        plugin_readme = (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8")
+        setup = (ready_root / "SETUP.md").read_text(encoding="utf-8")
+        for document in (plugin_readme, setup):
+            self.assertIn("https://stitch.withgoogle.com/settings", document)
+            self.assertIn("STITCH_API_KEY", document)
+            self.assertIn("Google AI Studio", document)
+            self.assertIn("never paste", document.lower())
+
+        helper_path = PLUGIN_ROOT / "scripts/configure-stitch-api-key-macos.sh"
+        helper = helper_path.read_text(encoding="utf-8")
+        self.assertTrue(helper_path.stat().st_mode & 0o111)
+        self.assertIn("read -r -s stitch_api_key", helper)
+        self.assertIn("launchctl setenv STITCH_API_KEY", helper)
+        self.assertIn("launchctl unsetenv STITCH_API_KEY", helper)
+        self.assertNotIn("echo $stitch_api_key", helper)
+
     def test_plugin_image_assets_are_png_at_required_sizes(self) -> None:
         manifest = json.loads(
             (PLUGIN_ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
@@ -593,7 +625,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertTrue((plugin_path / ".codex-plugin/plugin.json").is_file())
         self.assertEqual(
             entry["policy"],
-            {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+            {"installation": "AVAILABLE", "authentication": "ON_USE"},
         )
         self.assertEqual(entry["category"], "Coding")
         opt_in_marketplace = json.loads(

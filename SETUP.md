@@ -25,10 +25,33 @@ This template targets iOS 26 by default, so use an Xcode release that includes t
 
 - a Google account with access to [Stitch](https://stitch.withgoogle.com/)
 - access to the intended Stitch project, or permission to create one
-- Stitch MCP configured and authenticated for that account
+- Stitch MCP configured with an API key created for that account
 - internet access while generating, editing, or retrieving Stitch artifacts
 
-Follow Google's current [Stitch MCP setup guide](https://stitch.withgoogle.com/docs/mcp/setup/). This template's `.codex/config.toml` sends the `X-Goog-Api-Key` header from the `STITCH_API_KEY` environment variable. Keep the real key outside the repo, make it available to the environment that launches Codex Desktop or Codex CLI, and restart Codex after changing it. Never commit the key or paste it into `.codex/config.toml`.
+Follow Google's current [Stitch MCP setup guide](https://stitch.withgoogle.com/docs/mcp/setup/). For the quick personal setup, sign in to [Google Stitch](https://stitch.withgoogle.com/), open [Stitch Settings](https://stitch.withgoogle.com/settings), choose **API Keys**, and select **Create key**. A Google AI Studio key is a Gemini API credential; it is not the documented replacement for a key created in Stitch Settings.
+
+This template's `.codex/config.toml` and the plugin's `.mcp.json` send the `X-Goog-Api-Key` header from the `STITCH_API_KEY` environment variable. Codex's generic **Authenticate** action starts OAuth and is not the Stitch API-key setup path. Keep the real key outside the repo, never paste it into a Codex conversation, and never put the literal value in `.codex/config.toml` or `.mcp.json`.
+
+For Codex Desktop on macOS, use a hidden prompt so the key does not enter shell history, then make it available to desktop apps for the current login session:
+
+```bash
+read -rs "STITCH_API_KEY?Paste your Stitch API key: "
+printf '\n'
+launchctl setenv STITCH_API_KEY "$STITCH_API_KEY"
+unset STITCH_API_KEY
+```
+
+Fully quit and reopen Codex Desktop afterward. Remove the key from that environment with `launchctl unsetenv STITCH_API_KEY`. A full NATIVE READY source checkout also provides `./plugins/ios-app-director/scripts/configure-stitch-api-key-macos.sh` as a guided wrapper for the same setup.
+
+For Codex CLI, keep the key only in the terminal session that launches Codex:
+
+```bash
+read -rs "STITCH_API_KEY?Paste your Stitch API key: "
+printf '\n'
+export STITCH_API_KEY
+codex
+unset STITCH_API_KEY
+```
 
 Stitch is the preferred concept path for the full design-first experience. If Stitch is unavailable and the user did not make it a hard requirement, bootstrap should continue from screenshots, notes, or a product brief, create the native scaffold, and report the degraded design path in `docs/bootstrap-receipt.md`.
 
@@ -106,7 +129,7 @@ codex plugin list
 codex plugin add ios-app-director@repo-local-plugins
 ```
 
-Start a new Codex task after installation. If the marketplace was already added, refresh it with `codex plugin marketplace upgrade repo-local-plugins`, reinstall the plugin, and start another new task.
+Start a new Codex task after installation. Authentication is deferred until a connection is used, so optional Cloudflare and Stitch credentials do not block installation. If the marketplace was already added, refresh it with `codex plugin marketplace upgrade repo-local-plugins`, reinstall the plugin, and start another new task.
 
 Use only one copy of each skill. If the same 10 skills were installed manually at user scope, remove or disable those copies before using the plugin.
 
@@ -122,22 +145,22 @@ The source repository's standard `.agents/plugins/marketplace.json` exposes this
 
 Use `.agents/plugins/marketplace.opt-in-ios-app-director.json` only for isolated local packaging tests in a checkout that also contains `plugins/ios-app-director/`, and do not activate it alongside a global installation.
 
-The bundled plugin is skills-only by default; `plugins/ios-app-director/.mcp.json` is reference wiring rather than automatically enabled configuration.
+The bundled plugin manifest registers `plugins/ios-app-director/.mcp.json`, so the plugin carries its XcodeBuildMCP, Cloudflare, and Stitch connection definitions with it. The real Stitch key remains outside the package.
 
 ## 4. Configure The Tool Connections
 
-The bundled MCP reference defines:
+The bundled MCP configuration defines:
 
 - `xcodebuildmcp` through `npx`
 - `stitch` through Google's Stitch MCP endpoint
 - `cloudflare-api` through Cloudflare's MCP endpoint
 
-Prefer already configured global MCP connections. If you intentionally use plugin-local wiring, add `"mcpServers": "./.mcp.json"` to the plugin manifest, reinstall/reload the plugin, and authenticate the services you need.
+Prefer already configured global MCP connections when they exist. The packaged plugin otherwise registers its own MCP definitions through `"mcpServers": "./.mcp.json"`.
 
 Before bootstrap:
 
 1. Confirm XcodeBuildMCP starts and exposes `session_show_defaults` and `build_run_sim`.
-2. If Stitch is in scope, confirm the Stitch connection can list or access projects.
+2. If Stitch is in scope, set `STITCH_API_KEY`, restart Codex, and confirm the Stitch connection can list or access projects. Do not use the generic OAuth **Authenticate** action for this API-key flow.
 3. Treat Cloudflare authentication as optional unless the first runnable slice depends on it.
 4. Restart Codex after changing global skill or MCP configuration.
 
