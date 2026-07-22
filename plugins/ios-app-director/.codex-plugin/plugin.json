@@ -3,7 +3,7 @@
   "version": "0.5.0",
   "description": "A roadmap-driven iOS app development engine with one bootstrap entry point, design-first setup, native SwiftUI scaffolding, simulator validation, receipts, and production-minded delivery loops.",
   "author": {
-    "name": "Matt"
+    "name": "Matt Glass"
   },
   "license": "MIT",
   "keywords": [
@@ -28,7 +28,7 @@
     "displayName": "iOS App Director",
     "shortDescription": "Bootstrap, direct, validate, harden, and ship roadmap-driven iOS app work",
     "longDescription": "Use iOS App Director to turn app intent and Stitch concepts into a roadmap-driven delivery workflow: bootstrap through one public entry point, generate or inspect design-first screen sets, synthesize a quality-controlled feature map, preserve the visual spine, create and launch the initial native SwiftUI Xcode scaffold with real app naming, record a non-blocking setup receipt, implement and validate SwiftUI features with XcodeBuildMCP, evolve Cloudflare-backed service layers, apply regression and evidence discipline, and close out features with a repeatable definition of done.",
-    "developerName": "Matt + Codex",
+    "developerName": "Matt Glass + Codex",
     "category": "Coding",
     "capabilities": [
       "Interactive",
@@ -41,8 +41,8 @@
       "Use iOS App Director to continue delivery from a validated active baton."
     ],
     "brandColor": "#0A84FF",
-    "composerIcon": "./assets/ios-app-director-icon.svg",
-    "logo": "./assets/ios-app-director-logo.svg",
+    "composerIcon": "./assets/ios-app-director-icon.png",
+    "logo": "./assets/ios-app-director-logo.png",
     "screenshots": []
   }
 }

@@ -507,6 +507,51 @@ class BootstrapReceiptTests(unittest.TestCase):
 
 
 class DistributionContractTests(unittest.TestCase):
+    def test_plugin_image_assets_are_png_at_required_sizes(self) -> None:
+        manifest = json.loads(
+            (PLUGIN_ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
+        )
+        expected_assets = {
+            "composerIcon": ("./assets/ios-app-director-icon.png", (128, 128)),
+            "logo": ("./assets/ios-app-director-logo.png", (512, 512)),
+        }
+
+        for field, (relative_path, expected_size) in expected_assets.items():
+            with self.subTest(field=field):
+                self.assertEqual(manifest["interface"][field], relative_path)
+                asset_path = PLUGIN_ROOT / relative_path.removeprefix("./")
+                data = asset_path.read_bytes()
+                self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+                self.assertEqual(struct.unpack(">II", data[16:24]), expected_size)
+
+        agent_card = (PLUGIN_ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
+        self.assertIn("./assets/ios-app-director-icon.png", agent_card)
+        self.assertIn("./assets/ios-app-director-logo.png", agent_card)
+        self.assertNotIn(".svg", agent_card)
+
+        self.assertFalse((PLUGIN_ROOT / "assets/ios-app-director-icon.svg").exists())
+        self.assertFalse((PLUGIN_ROOT / "assets/ios-app-director-logo.svg").exists())
+
+    def test_license_covers_source_plugin_and_generated_template(self) -> None:
+        ready_root = PLUGIN_ROOT.parent.parent
+        source_license = (ready_root / "LICENSE").read_bytes()
+        plugin_license = (PLUGIN_ROOT / "LICENSE").read_bytes()
+        template_license = (
+            PLUGIN_ROOT
+            / "skills/ios-app-bootstrap/templates/ai-app-engine"
+            / "LICENSES/NATIVE-READY-MIT.txt"
+        ).read_bytes()
+
+        self.assertEqual(source_license, plugin_license)
+        self.assertEqual(source_license, template_license)
+        self.assertIn(b"Copyright (c) 2026 Matt Glass", source_license)
+
+        manifest = json.loads(
+            (PLUGIN_ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(manifest["author"]["name"], "Matt Glass")
+        self.assertEqual(manifest["license"], "MIT")
+
     def test_marketplace_distribution_separates_source_and_generated_apps(self) -> None:
         ready_root = PLUGIN_ROOT.parent.parent
         marketplace = json.loads(

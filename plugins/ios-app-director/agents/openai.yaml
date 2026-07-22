@@ -1,6 +1,6 @@
 interface:
   display_name: "iOS App Director"
   short_description: "Bootstrap and deliver verified native iOS apps"
-  icon_small: "./assets/ios-app-director-icon.svg"
-  icon_large: "./assets/ios-app-director-logo.svg"
+  icon_small: "./assets/ios-app-director-icon.png"
+  icon_large: "./assets/ios-app-director-logo.png"
   default_prompt: "Use $ios-app-bootstrap for a new READY app, or use $ios-app-director to continue delivery from an existing validated baton with XcodeBuildMCP evidence."

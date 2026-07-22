@@ -213,3 +213,10 @@ internal setup coordinator and other NATIVE READY specialists to provide:
 
 ## Local plugin note
 The NATIVE READY source repository ships a bundled repo-local plugin copy and a standard marketplace entry for global installation from GitHub. The generated-app template keeps its standard marketplace empty. Its separate opt-in marketplace remains available for isolated local packaging tests when the bundled package is present.
+
+## License
+NATIVE READY, including its orchestration engine, plugin, skills, scripts, documentation, and templates, is available under the MIT License. The source repository carries the standard terms in its root `LICENSE`, and generated app templates preserve the NATIVE READY notice in `LICENSES/NATIVE-READY-MIT.txt`.
+
+Applications and other output created with NATIVE READY are not automatically licensed under MIT. Their authors choose the license for their own work, subject to applicable third-party terms and preservation of the MIT notice when NATIVE READY source files or substantial portions are redistributed.
+
+The MIT License does not grant permission to use the NATIVE READY name or logos in a way that implies endorsement, sponsorship, or official origin.
