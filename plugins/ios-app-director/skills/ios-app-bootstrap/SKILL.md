@@ -38,6 +38,24 @@ Do not stop after documentation or Stitch generation alone. Do not begin product
 
 ## Workflow
 
+### 0. Deploy or repair the READY base
+
+Do not assume the app repository already contains the READY starter files or a
+local `plugins/ios-app-director/` source checkout. Resolve
+`<ios-app-bootstrap-skill-dir>` as the directory containing this active
+`SKILL.md`, then run:
+
+```text
+python3 <ios-app-bootstrap-skill-dir>/scripts/deploy_ready_template.py --repo-root /absolute/path/to/app-repo
+```
+
+Run this before the Xcode preflight so a new or blocked workspace still receives
+the operating memory and receipt surfaces. The default merge creates missing
+files, leaves identical files alone, and preserves differing existing files.
+Review preserved conflicts; use `--overwrite` only when replacing those exact
+files is intentional. The embedded app template is the deployment source of
+truth. Do not copy the plugin package itself into a generated app repository.
+
 ### 1. Preflight the environment
 
 Classify each capability as `required`, `optional`, or `not_in_scope`:
@@ -114,7 +132,11 @@ Use the current roadmap and baton schemas. The active baton must point to exactl
 - After scaffold validation, activate the first native visual/product slice.
 - Keep unresolved optional concepts, reports, and service work in the roadmap or risk register rather than using them to deadlock the baton.
 
-Run `ios-app-director/scripts/validate_baton_frontmatter.py --repo-root .` after writing the baton and fix malformed or unresolved active placeholders.
+Resolve `<ios-app-director-skill-dir>` as the directory containing the active
+`ios-app-director/SKILL.md`, then run
+`python3 <ios-app-director-skill-dir>/scripts/validate_baton_frontmatter.py --repo-root .`
+after writing the baton. Fix malformed or unresolved active placeholders. Do
+not assume that script lives inside the app repository.
 
 ### 6. Create and validate the native scaffold
 
@@ -136,7 +158,7 @@ Do not infer a successful launch from a successful build, app installation, a bo
 Run:
 
 ```text
-python3 plugins/ios-app-director/skills/ios-app-bootstrap/scripts/render_bootstrap_receipt.py --repo-root . --toolchain-status <supported|unsupported_toolchain|unavailable|unknown> --scheme-discovered <yes|no|unknown> --first-build-result <succeeded|failed|not_run|unknown> --first-launch-result <succeeded|failed|not_run|unknown> --baton-validation <passed|failed|not_run|unknown>
+python3 <ios-app-bootstrap-skill-dir>/scripts/render_bootstrap_receipt.py --repo-root . --toolchain-status <supported|unsupported_toolchain|unavailable|unknown> --scheme-discovered <yes|no|unknown> --first-build-result <succeeded|failed|not_run|unknown> --first-launch-result <succeeded|failed|not_run|unknown> --baton-validation <passed|failed|not_run|unknown>
 ```
 
 Add `--stitch-status`, `--build-evidence`, `--launch-evidence`, and repeatable `--note` values when useful. Keep build and launch results independent: a successful compile does not turn a failed launch into success. The renderer reports state and always leaves remediation visible; receipt completeness is never itself a gate.

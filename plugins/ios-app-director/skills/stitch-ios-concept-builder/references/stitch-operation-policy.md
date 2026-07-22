@@ -29,8 +29,10 @@ direction, variants, and roadmap sequencing from product evidence.
    of accidental projects as a separate destructive action requiring explicit
    approval.
 
-Use `scripts/stitch_operation_journal.py` when available to persist these
-invariants under `.stitch/operations/current.json`.
+Use
+`<stitch-ios-concept-builder-skill-dir>/scripts/stitch_operation_journal.py`
+from the active skill when available to persist these invariants under
+`.stitch/operations/current.json`.
 
 ## Mutation Preflight
 

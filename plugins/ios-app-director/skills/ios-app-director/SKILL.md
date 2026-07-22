@@ -218,8 +218,10 @@ promoting maturity.
 Use `references/baton-schema.md` when writing or repairing `.stitch/next-prompt.md`.
 Use `references/roadmap-task-template.md` when writing or reshaping roadmap items.
 After writing `.stitch/next-prompt.md`, run
-`scripts/validate_baton_frontmatter.py --repo-root .` when practical. Fix
-malformed frontmatter before ending the turn.
+`python3 <ios-app-director-skill-dir>/scripts/validate_baton_frontmatter.py --repo-root .`
+when practical, where `<ios-app-director-skill-dir>` contains this active
+`SKILL.md`. Fix malformed frontmatter before ending the turn; do not assume the
+app repo contains the validator.
 
 ### 4. Design intentionally
 

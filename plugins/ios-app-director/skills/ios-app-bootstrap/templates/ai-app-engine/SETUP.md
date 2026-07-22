@@ -12,9 +12,9 @@ Use the same public entry point in Codex Desktop and Codex CLI: `ios-app-bootstr
 | --- | --- | --- |
 | A Mac that supports the installed Xcode version | Native iOS builds and Simulator require macOS and Xcode | Compare your Mac/Xcode combination with [Apple's Xcode requirements](https://developer.apple.com/xcode/system-requirements/) |
 | Xcode with the intended iOS SDK and at least one iPhone Simulator runtime | NATIVE READY creates, builds, launches, and inspects a real SwiftUI app | Open Xcode once and finish any component/runtime installation |
-| Codex Desktop or Codex CLI, signed in | Codex supplies the reasoning and execution session | Start Codex in the copied NATIVE READY repo root |
-| Workspace trust and write permission for the copied repo | Bootstrap must update memory, generate the Xcode project, and capture evidence | Allow the repo path when Codex asks |
-| One active copy of the 10 NATIVE READY skills | The skills define the bootstrap, design, scaffold, delivery, and closeout contracts | Use either the global skills or the bundled plugin—not both |
+| Codex Desktop or Codex CLI, signed in | Codex supplies the reasoning and execution session | Start Codex in the target app repo root |
+| Workspace trust and write permission for the target repo | Bootstrap must deploy or update memory, generate the Xcode project, and capture evidence | Allow the repo path when Codex asks |
+| One active copy of the 10 NATIVE READY skills | The skills define the bootstrap, design, scaffold, delivery, and closeout contracts | Use the installed plugin or an intentional source-checkout copy—not both |
 | XcodeBuildMCP | NATIVE READY uses it for scheme discovery, simulator build/run, screenshots, logs, and UI checks | Run its doctor or confirm `session_show_defaults` is available in Codex |
 
 XcodeBuildMCP currently documents macOS 14.5+, Xcode 16+, and Node.js 18+ for its npm/npx installation path. A Homebrew installation does not require Node.js. Follow the current [XcodeBuildMCP installation guide](https://www.xcodebuildmcp.com/docs/installation) when those requirements change.
@@ -85,15 +85,22 @@ codex mcp list
 npx --package xcodebuildmcp@latest xcodebuildmcp-doctor
 ```
 
-## 2. Copy The Template
+## 2. Create Or Copy The App Repo
 
-Copy or unzip `APP-TEMPLATE-FOR-AI-BUILD-NATIVE-READY` into a new app folder:
+Create an empty app folder/repo, or copy or unzip the NATIVE READY app template
+into one:
 
 ```text
 /Users/you/Sites/MYAPP/
 ```
 
-The copied folder is always the operating repo root. The generated Xcode project will normally live in a nested app container:
+That folder is always the operating repo root. When only the global plugin is
+installed, open the empty folder there and start with `$ios-app-bootstrap`; the
+skill safely deploys its embedded starter pack before preflight. Existing
+differing files are preserved by default, and the plugin source itself is not
+copied into the app repo.
+
+The generated Xcode project will normally live in a nested app container:
 
 ```text
 MYAPP/
@@ -102,7 +109,10 @@ MYAPP/
     MyRealTarget/
 ```
 
-Keep Codex opened at `MYAPP/`, where `AGENTS.md`, `docs/`, `.stitch/`, and `plugins/` live. Do not start the task from the nested Swift source folder.
+Keep Codex opened at `MYAPP/`, where `AGENTS.md`, `docs/`, and `.stitch/` live
+after deployment. A `plugins/` directory exists only in a full NATIVE READY
+source checkout or an intentional local-package test. Do not start the task
+from the nested Swift source folder.
 
 ## 3. Choose One NATIVE READY Skill Source
 

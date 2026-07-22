@@ -1,6 +1,8 @@
 # Stable Bootstrap Prompt
 
-Use this as the first message in a fresh Codex Desktop or Codex CLI task opened at the copied READY repo root.
+Use this as the first message in a fresh Codex Desktop or Codex CLI task opened
+at the target app repo root. The folder may be empty when the plugin is globally
+installed; `ios-app-bootstrap` deploys the embedded READY starter pack first.
 
 `ios-app-bootstrap` is the single public setup entry point. It may delegate to the other READY skills internally, but it owns completion through the first simulator launch and receipt.
 
@@ -23,7 +25,7 @@ Use $ios-app-bootstrap as the single READY setup entry point. Coordinate the oth
 Work only inside this repo:
 - /Users/Path/To/NewApp/
 
-This repo is a READY iOS app development workspace. The repo root is the folder containing `AGENTS.md`, `docs/`, `.stitch/`, and `plugins/`. Keep it as the operating root even when the generated SwiftUI/Xcode project lives in a nested app container.
+This repo is a READY iOS app development workspace. Deploy or repair the embedded READY starter pack when `AGENTS.md`, `docs/`, or `.stitch/` is missing. The repo root is the folder containing those paths after deployment; a local `plugins/` directory is optional and normally absent when using the globally installed plugin. Keep the app repo as the operating root even when the generated SwiftUI/Xcode project lives in a nested app container.
 
 Bootstrap inputs:
 - App name: [APP_NAME]
@@ -46,17 +48,18 @@ Bootstrap inputs:
 - Bundle identifier: [FINAL_REVERSE_DOMAIN_ID or PROVISIONAL]
 
 Completion contract:
-1. Preflight Codex workspace access, Xcode/Simulator, XcodeBuildMCP, Stitch, and optional service tooling.
-2. Fill or repair product-specific content in `AGENTS.md`, `docs/app-build-spec.md`, `.stitch/APP.md`, `.stitch/DESIGN.md`, `.stitch/metadata.json`, `.stitch/ROADMAP.md`, and `.stitch/next-prompt.md`.
-3. When Stitch is in scope and no project exists, generate first-pass concepts in one provenance-backed Stitch project.
-4. Inspect required core concept roles for hierarchy, clipping, overflow, generic treatment, and product identity. Use at most two corrective edit/variant attempts per core role during bootstrap, then keep the strongest usable artifact and record remaining gaps.
-5. Refresh stable Stitch intake manifests, extract source artwork when available, synthesize the feature map and semantic design system, and create the visual-spine plan and screen packets.
-6. Keep an ambiguous or optional Stitch operation visible without letting it block independent native setup. The active baton must point to the best dependency-safe executable task.
-7. Create or confirm the native SwiftUI Xcode project with app-specific target, module, scheme, source root, app entry type, and test-target names.
-8. Do not retain `MyApp` or another unrelated app's target/test names. Treat `com.example.*` as provisional simulator-only identity and label it explicitly.
-9. Use XcodeBuildMCP to discover the scheme and run the first simulator build/launch. Diagnose setup failures instead of stopping after scaffold generation.
-10. Validate `.stitch/next-prompt.md` frontmatter and activate the first dependency-safe delivery task after scaffold validation.
-11. Render `docs/bootstrap-receipt.md` with the Stitch project/status, native target/scheme/project/bundle ID, first build result/evidence, active task, baton validation, unresolved risks, completion state, and exact next prompt.
+1. Deploy or safely repair the embedded READY starter pack from the active bootstrap skill when required; preserve differing existing files and do not copy plugin source into the app repo.
+2. Preflight Codex workspace access, Xcode/Simulator, XcodeBuildMCP, Stitch, and optional service tooling.
+3. Fill or repair product-specific content in `AGENTS.md`, `docs/app-build-spec.md`, `.stitch/APP.md`, `.stitch/DESIGN.md`, `.stitch/metadata.json`, `.stitch/ROADMAP.md`, and `.stitch/next-prompt.md`.
+4. When Stitch is in scope and no project exists, generate first-pass concepts in one provenance-backed Stitch project.
+5. Inspect required core concept roles for hierarchy, clipping, overflow, generic treatment, and product identity. Use at most two corrective edit/variant attempts per core role during bootstrap, then keep the strongest usable artifact and record remaining gaps.
+6. Refresh stable Stitch intake manifests, extract source artwork when available, synthesize the feature map and semantic design system, and create the visual-spine plan and screen packets.
+7. Keep an ambiguous or optional Stitch operation visible without letting it block independent native setup. The active baton must point to the best dependency-safe executable task.
+8. Create or confirm the native SwiftUI Xcode project with app-specific target, module, scheme, source root, app entry type, and test-target names.
+9. Do not retain `MyApp` or another unrelated app's target/test names. Treat `com.example.*` as provisional simulator-only identity and label it explicitly.
+10. Use XcodeBuildMCP to discover the scheme and run the first simulator build/launch. Diagnose setup failures instead of stopping after scaffold generation.
+11. Validate `.stitch/next-prompt.md` frontmatter and activate the first dependency-safe delivery task after scaffold validation.
+12. Render `docs/bootstrap-receipt.md` with the Stitch project/status, native target/scheme/project/bundle ID, first build result/evidence, active task, baton validation, unresolved risks, completion state, and exact next prompt.
 
 Operating rules:
 - preserve the source path: design evidence -> feature map/design system -> roadmap/baton -> native SwiftUI

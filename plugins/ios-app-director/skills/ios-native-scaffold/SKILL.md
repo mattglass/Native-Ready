@@ -11,6 +11,10 @@ allowed-tools:
 
 Use this skill after design-first repo memory is coherent and before feature implementation begins.
 
+Resolve `<ios-native-scaffold-skill-dir>` as the directory containing this
+active `SKILL.md`. Run its bundled generator from that directory rather than
+assuming the app repo contains the script.
+
 It turns the old manual Xcode project step into an automated bridge:
 
 1. derive a stable native naming contract
@@ -66,7 +70,7 @@ Example:
 Use the bundled script from the skill directory:
 
 ```sh
-python3 scripts/render_ios_native_scaffold.py \
+python3 <ios-native-scaffold-skill-dir>/scripts/render_ios_native_scaffold.py \
   --repo-root /path/to/app/repo \
   --app-name "App Name" \
   --target-name AppName \

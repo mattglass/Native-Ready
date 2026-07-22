@@ -141,16 +141,16 @@ repo-root/
     definition-of-done.md
     example-build-spec.md
     native-scaffold.md  # generated after native scaffold
-  plugins/
+  plugins/                 # full NATIVE READY source checkout only
     ios-app-director/
   workers/
 ```
 
 ## How to use this template
-1. Clone, copy or unzip this NATIVE READY template into a new app folder/repo.
-2. Read `SETUP.md` and complete the required Xcode, Codex, skill, MCP, and account preflight.
-3. Open Codex Desktop or Codex CLI at the copied repo root and make the complete app brief the first message.
-4. Use `docs/bootstrap-prompt.md` and `$ios-app-bootstrap` as the single public setup entry point. `docs/design-first-setup-prompt.md` adds advanced Stitch inputs to that same entry point.
+1. Create a new app folder/repo. Either clone, copy, or unzip this template, or start with an empty folder and the globally installed plugin.
+2. Open Codex Desktop or Codex CLI at that repo root and make the complete app brief the first message.
+3. Use `$ios-app-bootstrap` as the single public setup entry point. From an empty folder, the installed skill safely deploys its embedded READY starter pack before preflight; it does not copy the plugin source into the app repo.
+4. Read `SETUP.md` and complete the required Xcode, Codex, skill, MCP, and account preflight. `docs/bootstrap-prompt.md` is available after deployment, and `docs/design-first-setup-prompt.md` adds advanced Stitch inputs to that same entry point.
 5. Let bootstrap inspect or create design evidence, generate the feature map, create the native SwiftUI scaffold, run the first simulator build/launch, validate the baton, and write `docs/bootstrap-receipt.md`.
 6. After a `ready_for_delivery` receipt, use the documented `/goal` prompt and `ios-app-director` for autonomous delivery.
 7. Use `ios-feature-closeout` to reconcile roadmap, baton, evidence, risk, and next-step handoff after meaningful work.

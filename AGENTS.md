@@ -66,13 +66,14 @@ Treat these as persistent working memory when present:
 
 ## Plugin / Skill Surface
 
-This repo can be used with global Codex skills or the bundled local plugin copy.
-`AGENTS.md` documents the expected surface, but plugin activation still depends
-on the Codex session and marketplace configuration.
+This repo can be used with the globally installed plugin. A full NATIVE READY
+source checkout can also use its bundled local plugin copy. `AGENTS.md`
+documents the expected surface, but plugin activation still depends on the
+Codex session and marketplace configuration.
 
 - Default marketplace file: `.agents/plugins/marketplace.json`
 - Optional local plugin marketplace file: `.agents/plugins/marketplace.opt-in-ios-app-director.json`
-- Bundled local plugin path: `plugins/ios-app-director/`
+- Bundled local plugin path when present: `plugins/ios-app-director/`
 - Global skill path when installed: `$CODEX_HOME/skills/` or `~/.codex/skills/`
 
 READY-related skills:
@@ -95,10 +96,10 @@ the first simulator launch and `docs/bootstrap-receipt.md`. Treat
 front door. Begin `ios-app-director` delivery only when the user also requested
 implementation or activated a delivery goal.
 
-When this repo is the app template source of truth, prefer the bundled local
-plugin skill files under `plugins/ios-app-director/skills/` for framework
-behavior. Keep global skill copies synced from READY before relying on them in
-fresh Codex sessions.
+Resolve helper scripts relative to each active skill's `SKILL.md`; never assume
+the app repo contains plugin source. In the full NATIVE READY source checkout,
+the bundled files under `plugins/ios-app-director/skills/` are the canonical
+development copy. Generated app repos normally use the installed plugin only.
 
 ## Debug mode
 
