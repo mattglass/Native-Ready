@@ -10,7 +10,8 @@
     "cloudflare-api": {
       "type": "http",
       "url": "https://mcp.cloudflare.com/mcp",
-      "note": "Official Cloudflare API MCP server. Uses OAuth on first connection, with optional bearer-token auth for automation. Useful for app endpoints, proxies, and service orchestration."
+      "enabled": false,
+      "note": "Optional Cloudflare API MCP server, disabled by default. Enable it only when the app needs Cloudflare services, then use OAuth on first connection or optional bearer-token auth for automation. Useful for app endpoints, proxies, and service orchestration."
     },
     "stitch": {
       "type": "http",
