@@ -49,8 +49,10 @@ Before a generation, edit, variant, or design-system mutation:
    tokens, or other secrets in a Stitch prompt.
 5. Prepare a journal operation using the prompt file and containing the project
    ID, operation kind, intended screen role, every requested screen role, and
-   baseline screen IDs. The helper persists the prompt and its digest in the
-   journal before the external mutation begins.
+   baseline screen IDs. The helper persists the repo-relative prompt-file path,
+   prompt text, and digest in the journal before the external mutation begins.
+   Operational audit verifies that the durable file still exists under
+   `.stitch/operations/prompts/` and matches the digest.
 6. Verify that the project ID matches the journal's active project.
 
 Initialize recovery with the helper defaults unless the user or active tool
@@ -107,14 +109,24 @@ compound outcome later becomes ambiguous.
 
 Follow the active Stitch tool's timeout instructions. When no screen ID is
 returned, poll the same project's screen list and update time using the
-preflight baseline. Transition the journal through `polling` for every poll so
-the count survives handoff.
+preflight baseline. The current `generate_screen_from_text` and
+`generate_variants` contracts require one poll every 30 seconds, up to 10
+attempts. If a later active tool contract differs, its explicit budget governs
+and must be recorded during operation preparation.
+
+Record every observation with the helper's `record-poll` command, including the
+observed project update time, full visible screen ID list, response
+completeness, and any matching screen IDs. A counter-only `polling` transition
+is not evidence and is rejected. These evidence-bearing records survive
+handoff.
 
 During polling:
 
 - a new matching screen or project update resolves the operation as success
-- unchanged evidence keeps the operation in `polling`
-- exhausting the prescribed polling budget yields `ambiguous_timeout`
+- unchanged or unmatched evidence keeps the operation in `polling`
+- a complete matching observation resolves the operation immediately; the
+  remaining poll budget is not required after success
+- only exhausting the recorded polling budget yields `ambiguous_timeout`
 
 An ambiguous timeout does not freeze unrelated dependency-safe work, but
 recover its design dependency before moving on when recovery is available.
@@ -123,7 +135,8 @@ same loop iteration as the final poll.
 
 In default `autonomous` mode:
 
-1. Verify that the journal contains at least one `polling` transition.
+1. Verify that the journal contains the complete prescribed polling budget as
+   evidence-bearing poll records.
 2. Reconcile the same project one final time immediately before replacement.
    Record its full observed screen ID list and project update time with
    `record-final-reconciliation`, explicitly classifying both the outcome and
@@ -158,21 +171,50 @@ screen count. Classify each role as:
 - `deferred`: intentionally postponed with a recorded reason or task
 - `not_needed`: intentionally excluded by product scope
 
-Setup may continue through dependency-safe work when a role is missing, but it
-must not describe the concept set as complete unless every required role is
-`live`, `artifact_only` with adequate provenance, or explicitly `deferred`.
-Create or retain an actionable `stitch_art_expansion` task for each blocking
-gap.
+Missing evidence is normal only as a transient Stitch-loop recovery state. It
+is never evidence-neutral or implementation-ready. Setup may continue through
+work that is genuinely independent of the missing design role, such as native
+project scaffolding or an unrelated service contract. It must not implement the
+dependent SwiftUI surface, issue its screen packet, or describe the concept set
+as complete unless every required role is `live`, `artifact_only` with adequate
+provenance, or explicitly `deferred` with user-accepted native fallback. Create
+or retain an actionable `stitch_art_expansion` task for each blocking gap.
 
 When a required role is `missing` and no unresolved journal operation covers
-it, generate it autonomously in the active project. Missing concept evidence is
-normal Stitch-loop work, not a routine reason to ask the user what to do.
+it, generate it autonomously in the active project. This is routine Stitch-loop
+work, not a routine reason to ask the user what to do and not permission to
+continue the dependent native surface without evidence.
 
 During delivery, `stitch_expansion: needed` is an instruction to perform the
 expansion, not merely document it. Generate in the active project unless a
 prior operation for that role is still polling or ambiguously timed out. Poll
 or recover that operation immediately; do not treat its unresolved state as a
 reason to leave the required screen missing.
+
+## Native Design Handoff Gate
+
+Planning and intake may preserve a partial concept set so the gap remains
+visible and actionable. Before design-dependent SwiftUI implementation begins,
+run:
+
+```bash
+python3 <stitch-ios-concept-builder-skill-dir>/scripts/stitch_operation_journal.py audit \
+  --repo-root . \
+  --gate native-design-handoff \
+  --screen-role "<dependent concept role>"
+```
+
+A nonzero result blocks only design-dependent implementation. Return to the
+active project's generate, poll, reconcile, or recovery loop. The gate requires
+required concept roles to have live screen provenance or existing artifact
+provenance, rejects unresolved operations for those roles, and accepts a
+deferred native fallback only when the record includes an explicit reason and
+`userAcceptedNativeFallback: true`.
+
+Pass each role required by the current native surface with another
+`--screen-role`. Omit the option for a global readiness or closeout audit. This
+keeps an unrelated missing role from freezing dependency-safe work without
+weakening the handoff for the surface being implemented.
 
 ## Capability Scoping
 

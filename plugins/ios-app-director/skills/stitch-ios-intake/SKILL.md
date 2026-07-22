@@ -214,4 +214,11 @@ After intake, hand off to `ios-feature-map` with:
 - unresolved Stitch operation IDs and recovery state
 - remaining questions
 
+Partial concept coverage may continue into feature mapping so missing evidence
+stays visible and actionable. Mark the native design handoff as blocked for each
+required `missing` role, required `deferred` role without explicit user-accepted
+fallback, missing artifact provenance, or unresolved Stitch operation. Intake
+completion is not implementation readiness; the concept builder's
+`native-design-handoff` audit must pass before dependent SwiftUI work begins.
+
 Do not proceed to Swift files from this skill.

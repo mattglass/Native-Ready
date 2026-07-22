@@ -467,6 +467,7 @@ class StitchOperationJournalTests(unittest.TestCase):
         prompt="Generate the welcome screen.",
         requested_screen_roles=None,
         replacement_for=None,
+        poll_attempts=1,
     ):
         return stitch_operations.prepare_operation(
             journal,
@@ -478,14 +479,16 @@ class StitchOperationJournalTests(unittest.TestCase):
             replacement_for=replacement_for,
             prompt=prompt,
             requested_screen_roles=requested_screen_roles,
+            poll_attempts=poll_attempts,
         )
 
     def reconcile_timeout(self, journal, operation_id="welcome-001"):
-        stitch_operations.transition_operation(
+        stitch_operations.record_poll(
             journal,
             operation_id,
-            "polling",
-            failure_class="timeout_or_connection",
+            ["existing-screen"],
+            "2026-07-22T11:59:30Z",
+            True,
         )
         stitch_operations.transition_operation(
             journal,
@@ -579,19 +582,14 @@ class StitchOperationJournalTests(unittest.TestCase):
         journal = self.journal()
         self.prepare(journal)
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
-        stitch_operations.transition_operation(
-            journal,
-            "welcome-001",
-            "ambiguous_timeout",
-            failure_class="timeout_or_connection",
-        )
         with self.assertRaisesRegex(
-            stitch_operations.JournalError, "at least one recorded poll"
+            stitch_operations.JournalError, "complete polling budget"
         ):
             stitch_operations.transition_operation(
                 journal,
                 "welcome-001",
-                "replacement_authorized",
+                "ambiguous_timeout",
+                failure_class="timeout_or_connection",
             )
         with self.assertRaises(stitch_operations.JournalError):
             stitch_operations.prepare_operation(
@@ -602,7 +600,13 @@ class StitchOperationJournalTests(unittest.TestCase):
                 "welcome",
                 prompt="Generate the welcome screen again.",
             )
-        stitch_operations.transition_operation(journal, "welcome-001", "polling")
+        stitch_operations.record_poll(
+            journal,
+            "welcome-001",
+            ["existing-screen"],
+            "2026-07-22T11:59:30Z",
+            True,
+        )
         stitch_operations.transition_operation(
             journal,
             "welcome-001",
@@ -648,6 +652,13 @@ class StitchOperationJournalTests(unittest.TestCase):
             requested_screen_roles=["welcome", "goals"],
         )
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        stitch_operations.record_poll(
+            journal,
+            "welcome-001",
+            ["existing-screen"],
+            "2026-07-22T11:59:30Z",
+            True,
+        )
         stitch_operations.transition_operation(
             journal,
             "welcome-001",
@@ -691,15 +702,23 @@ class StitchOperationJournalTests(unittest.TestCase):
             journal,
             screen_role="onboarding-set",
             requested_screen_roles=["welcome", "goals"],
+            poll_attempts=2,
         )
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
-        stitch_operations.transition_operation(
+        stitch_operations.record_poll(
             journal,
             "welcome-001",
-            "polling",
-            failure_class="timeout_or_connection",
+            ["existing-screen"],
+            "2026-07-22T11:59:00Z",
+            True,
         )
-        stitch_operations.transition_operation(journal, "welcome-001", "polling")
+        stitch_operations.record_poll(
+            journal,
+            "welcome-001",
+            ["existing-screen"],
+            "2026-07-22T11:59:30Z",
+            True,
+        )
         operation = stitch_operations.transition_operation(
             journal,
             "welcome-001",
@@ -738,15 +757,29 @@ class StitchOperationJournalTests(unittest.TestCase):
         self.assertEqual(len(immediate), 1)
         self.assertIn("decompose the compound request", immediate[0])
 
+    def test_audit_rejects_legacy_timeout_state_without_poll_evidence(self) -> None:
+        journal = self.journal()
+        operation = self.prepare(journal)
+        operation["status"] = "replacement_authorized"
+        operation["failureClass"] = "timeout_or_connection"
+        operation["recovery"]["pollCount"] = 0
+        operation["recovery"]["pollRecords"] = []
+        operation["recovery"]["finalReconciliation"] = None
+
+        errors, _, _ = stitch_operations.audit_journal(journal)
+        self.assertTrue(any("complete polling budget" in item for item in errors))
+        self.assertTrue(any("no-matching-output" in item for item in errors))
+
     def test_manual_recovery_mode_still_requires_a_user_decision(self) -> None:
         journal = self.journal(replacement_mode="manual")
         self.prepare(journal)
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
-        stitch_operations.transition_operation(
+        stitch_operations.record_poll(
             journal,
             "welcome-001",
-            "polling",
-            failure_class="timeout_or_connection",
+            ["existing-screen"],
+            "2026-07-22T11:59:30Z",
+            True,
         )
         operation = stitch_operations.transition_operation(
             journal, "welcome-001", "ambiguous_timeout"
@@ -785,7 +818,27 @@ class StitchOperationJournalTests(unittest.TestCase):
             "manual",
         )
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
-        operation = self.reconcile_timeout(journal)
+        for second in range(10):
+            stitch_operations.record_poll(
+                journal,
+                "welcome-001",
+                ["existing-screen"],
+                f"2026-07-22T11:59:{second:02d}Z",
+                True,
+            )
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "ambiguous_timeout",
+        )
+        operation = stitch_operations.record_final_reconciliation(
+            journal,
+            "welcome-001",
+            ["existing-screen"],
+            "2026-07-22T12:00:00Z",
+            "no_matching_output",
+            True,
+        )
         self.assertEqual(operation["recovery"]["decisionStatus"], "required")
 
         stitch_operations.set_recovery_policy(
@@ -801,11 +854,12 @@ class StitchOperationJournalTests(unittest.TestCase):
         journal = self.journal()
         self.prepare(journal)
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
-        stitch_operations.transition_operation(
+        stitch_operations.record_poll(
             journal,
             "welcome-001",
-            "polling",
-            failure_class="timeout_or_connection",
+            ["existing-screen"],
+            "2026-07-22T11:59:30Z",
+            True,
         )
         stitch_operations.transition_operation(
             journal, "welcome-001", "ambiguous_timeout"
@@ -832,11 +886,12 @@ class StitchOperationJournalTests(unittest.TestCase):
         journal = self.journal()
         self.prepare(journal)
         stitch_operations.transition_operation(journal, "welcome-001", "submitted")
-        stitch_operations.transition_operation(
+        stitch_operations.record_poll(
             journal,
             "welcome-001",
-            "polling",
-            failure_class="timeout_or_connection",
+            ["existing-screen"],
+            "2026-07-22T11:59:30Z",
+            True,
         )
         stitch_operations.transition_operation(
             journal, "welcome-001", "ambiguous_timeout"
@@ -1042,7 +1097,7 @@ class StitchOperationJournalTests(unittest.TestCase):
             ]
         )
         self.assertTrue(any("Primary detail" in item for item in errors))
-        self.assertEqual(warnings, [])
+        self.assertTrue(any("DESIGN HANDOFF BLOCKED" in item for item in warnings))
 
     def test_coverage_roles_are_product_driven_not_fixed_count(self) -> None:
         errors, warnings = stitch_operations.audit_concept_coverage(
@@ -1061,7 +1116,231 @@ class StitchOperationJournalTests(unittest.TestCase):
             ]
         )
         self.assertEqual(errors, [])
-        self.assertEqual(warnings, [])
+        self.assertTrue(any("DESIGN HANDOFF BLOCKED" in item for item in warnings))
+
+    def test_generate_screen_requires_full_evidence_bearing_poll_budget(self) -> None:
+        journal = self.journal()
+        operation = stitch_operations.prepare_operation(
+            journal,
+            "welcome-default-polls",
+            "generate_screen",
+            "project-123",
+            "welcome",
+            prompt="Generate the welcome screen.",
+        )
+        self.assertEqual(operation["recovery"]["requiredPollAttempts"], 10)
+        stitch_operations.transition_operation(
+            journal, "welcome-default-polls", "submitted"
+        )
+        stitch_operations.record_poll(
+            journal,
+            "welcome-default-polls",
+            ["existing-screen"],
+            "2026-07-22T12:00:00Z",
+            True,
+        )
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "1/10 evidence-bearing polls"
+        ):
+            stitch_operations.transition_operation(
+                journal, "welcome-default-polls", "ambiguous_timeout"
+            )
+        for second in range(1, 10):
+            stitch_operations.record_poll(
+                journal,
+                "welcome-default-polls",
+                ["existing-screen"],
+                f"2026-07-22T12:00:{second:02d}Z",
+                True,
+            )
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "polling budget is exhausted"
+        ):
+            stitch_operations.record_poll(
+                journal,
+                "welcome-default-polls",
+                ["existing-screen"],
+                "2026-07-22T12:01:00Z",
+                True,
+            )
+        operation = stitch_operations.transition_operation(
+            journal, "welcome-default-polls", "ambiguous_timeout"
+        )
+        self.assertEqual(operation["recovery"]["pollCount"], 10)
+        self.assertEqual(len(operation["recovery"]["pollRecords"]), 10)
+
+    def test_generic_poll_transition_requires_observed_evidence(self) -> None:
+        journal = self.journal()
+        self.prepare(journal)
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "use record_poll"
+        ):
+            stitch_operations.transition_operation(
+                journal, "welcome-001", "polling"
+            )
+
+    def test_matching_poll_adopts_output_without_exhausting_budget(self) -> None:
+        journal = self.journal()
+        self.prepare(journal, poll_attempts=10)
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        operation = stitch_operations.record_poll(
+            journal,
+            "welcome-001",
+            ["existing-screen", "welcome-screen"],
+            "2026-07-22T12:00:00Z",
+            True,
+            matching_screen_ids=["welcome-screen"],
+        )
+        self.assertEqual(operation["status"], "succeeded")
+        self.assertEqual(operation["newScreenIds"], ["welcome-screen"])
+        self.assertEqual(operation["recovery"]["pollCount"], 1)
+
+    def test_native_design_handoff_blocks_missing_required_concepts(self) -> None:
+        journal = self.journal()
+        records = [
+            {
+                "role": "Primary detail",
+                "required": True,
+                "status": "missing",
+                "linkedTask": "APP-004",
+            }
+        ]
+        errors, _ = stitch_operations.audit_design_handoff(journal, records)
+        self.assertTrue(any("blocks native design handoff" in item for item in errors))
+
+    def test_native_design_handoff_requires_user_accepted_deferred_fallback(self) -> None:
+        journal = self.journal()
+        deferred = {
+            "role": "Primary detail",
+            "required": True,
+            "status": "deferred",
+            "note": "Stitch was unavailable.",
+        }
+        errors, _ = stitch_operations.audit_design_handoff(journal, [deferred])
+        self.assertTrue(any("explicit user acceptance" in item for item in errors))
+        deferred["userAcceptedNativeFallback"] = True
+        errors, _ = stitch_operations.audit_design_handoff(journal, [deferred])
+        self.assertEqual(errors, [])
+
+    def test_native_design_handoff_matches_specific_and_short_operation_roles(self) -> None:
+        journal = self.journal()
+        self.prepare(journal, screen_role="welcome")
+        records = [
+            {
+                "role": "Welcome value proposition",
+                "required": True,
+                "status": "live",
+                "projectId": "project-123",
+                "screenIds": ["welcome-screen"],
+            }
+        ]
+        errors, _ = stitch_operations.audit_design_handoff(journal, records)
+        self.assertTrue(any("unresolved Stitch operation" in item for item in errors))
+
+    def test_targeted_handoff_does_not_block_on_independent_missing_role(self) -> None:
+        journal = self.journal()
+        records = [
+            {
+                "role": "Welcome value proposition",
+                "required": True,
+                "status": "live",
+                "projectId": "project-123",
+                "screenIds": ["welcome-screen"],
+            },
+            {
+                "role": "Vehicle detail",
+                "required": True,
+                "status": "missing",
+                "linkedTask": "APP-004",
+            },
+        ]
+        errors, _ = stitch_operations.audit_design_handoff(
+            journal,
+            records,
+            target_roles=["welcome"],
+        )
+        self.assertEqual(errors, [])
+        errors, _ = stitch_operations.audit_design_handoff(
+            journal,
+            records,
+            target_roles=["vehicle detail"],
+        )
+        self.assertTrue(any("blocks native design handoff" in item for item in errors))
+
+    def test_live_handoff_evidence_must_use_active_project(self) -> None:
+        journal = self.journal()
+        records = [
+            {
+                "role": "Welcome",
+                "required": True,
+                "status": "live",
+                "projectId": "other-project",
+                "screenIds": ["welcome-screen"],
+            }
+        ]
+        errors, _ = stitch_operations.audit_design_handoff(journal, records)
+        self.assertTrue(any("active Stitch project" in item for item in errors))
+
+    def test_audit_verifies_durable_prompt_file_and_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            prompt_dir = root / ".stitch/operations/prompts"
+            prompt_dir.mkdir(parents=True)
+            prompt_file = prompt_dir / "welcome-001.md"
+            prompt_file.write_text("Generate the welcome screen.", encoding="utf-8")
+            journal = self.journal()
+            self.prepare(journal, prompt="Generate the welcome screen.")
+
+            errors, warnings, _ = stitch_operations.audit_journal(journal, root)
+            self.assertEqual(errors, [])
+            self.assertEqual(warnings, [])
+
+            prompt_file.write_text("Changed after preparation.", encoding="utf-8")
+            errors, _, _ = stitch_operations.audit_journal(journal, root)
+            self.assertTrue(any("durable prompt file digest" in item for item in errors))
+
+    def test_prompt_file_must_live_in_durable_operation_memory(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            outside = root / "temporary-prompt.md"
+            outside.write_text("Generate the welcome screen.", encoding="utf-8")
+            with self.assertRaisesRegex(
+                stitch_operations.JournalError, "durable app memory"
+            ):
+                stitch_operations.durable_prompt_reference(root, outside)
+
+    def test_prepare_command_persists_durable_prompt_reference_and_poll_budget(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            prompt_dir = root / ".stitch/operations/prompts"
+            prompt_dir.mkdir(parents=True)
+            prompt_file = prompt_dir / "welcome-cli.md"
+            prompt_file.write_text("Generate the welcome screen.", encoding="utf-8")
+            journal = self.journal()
+            stitch_operations.save_journal(root, journal)
+            args = stitch_operations.build_parser().parse_args(
+                [
+                    "prepare-operation",
+                    "--repo-root",
+                    str(root),
+                    "--operation-id",
+                    "welcome-cli",
+                    "--kind",
+                    "generate_screen",
+                    "--screen-role",
+                    "welcome",
+                    "--prompt-file",
+                    ".stitch/operations/prompts/welcome-cli.md",
+                ]
+            )
+            self.assertEqual(stitch_operations.command_prepare(args), 0)
+            operation = stitch_operations.load_journal(root)["operations"][0]
+            self.assertEqual(
+                operation["request"]["promptFile"],
+                ".stitch/operations/prompts/welcome-cli.md",
+            )
+            self.assertEqual(operation["recovery"]["requiredPollAttempts"], 10)
 
 
 class BootstrapReceiptTests(unittest.TestCase):
@@ -1574,9 +1853,13 @@ class DistributionContractTests(unittest.TestCase):
             "keep live SwiftUI tokens authoritative once implementation exists",
             "treat conceptual design as subordinate to the live implementation",
             "Do not assume conceptual designs outrank the live implementation",
+            "native SwiftUI files win",
+            "live native behavior and design tokens",
+            "Live native implementation",
         )
         checked_paths = [
             ready_root / "AGENTS.md",
+            ready_root / ".stitch/APP.md",
             ready_root / ".stitch/DESIGN.md",
             ready_root / "docs/app-build-spec.md",
             ready_root / "docs/ai-app-development-engine-spec.md",
@@ -1585,6 +1868,9 @@ class DistributionContractTests(unittest.TestCase):
             / "skills/stitch-ios-intake/references/design-system-synthesis.md",
             PLUGIN_ROOT
             / "skills/ios-app-director/references/design-intake-policy.md",
+            PLUGIN_ROOT
+            / "skills/stitch-ios-concept-builder/references/ios-stitch-prompt-contract.md",
+            PLUGIN_ROOT / "skills/stitch-loop-ios/SKILL.md",
         ]
         for path in checked_paths:
             with self.subTest(path=path.relative_to(ready_root)):

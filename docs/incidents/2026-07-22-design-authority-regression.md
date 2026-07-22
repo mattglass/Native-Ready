@@ -30,13 +30,37 @@ started from `f320378`, the merge of PR #10. The intervening changes were:
 | #7 | Hardened first-run bootstrap | Xcode/toolchain, scaffold, launch, and receipt changes; no visual-authority change |
 | #8 | Made Cloudflare MCP opt-in | Configuration-only; no visual workflow change |
 | #9 | Hardened standalone plugin deployment and script path resolution | Did not weaken visual rules; made the committed starter more consistently deployable |
-| #10 | Added bounded Stitch timeout recovery and longer MCP timeout | Did not remove or relax visual fidelity rules |
+| #10 | Added bounded Stitch timeout recovery and longer MCP timeout | Preserved prompt content and project identity, but under-enforced polling evidence and design handoff readiness |
 
 `git blame` traces the conflicting hierarchy to initial commit `8168dbd`, so it
 predates that PR window. LawnCare's effective local plugin files also match
 current main apart from files that were untracked at its older base commit.
 There is no evidence that LawnCare succeeded because it ran a distinct older
 visual-spine implementation.
+
+The closer PR #10 audit found a separate contributing weakness, not the cause
+of LotCoach's prompt quality. LotCoach has five durable, design-rich prompt
+files and five successful operations; none timed out. Its downgrade happened
+after Stitch, during authority and native translation. However, PR #10's
+journal accepted a counter-only polling transition and required only one poll,
+while the active generation and variant tool contracts prescribe polling every
+30 seconds up to 10 times. Its default operational audit also exited zero when
+required concept coverage was missing but linked to a future task. That made a
+partial concept set easy for a downstream loop to mistake for implementation
+readiness.
+
+At code level, PR #10 introduced or preserved four specific gaps in
+`stitch_operation_journal.py` and its policy:
+
+- `transition_operation(..., "polling")` incremented `pollCount` without an
+  observed screen list, project update time, response-completeness flag, or
+  matching-output decision;
+- timeout recovery and replacement authorization required only one recorded
+  polling transition instead of the active tool's complete 10-poll budget;
+- `audit_concept_coverage` returned no error or warning for a required missing
+  role as long as `linkedTask` was populated; and
+- the journal retained prompt text and digest but not the durable prompt-file
+  path, so audit could not confirm the app-local prompt artifact still matched.
 
 ## Root Cause
 
@@ -54,6 +78,11 @@ Those instructions conflict with the visual-spine rules that say not to flatten
 image-forward Stitch work into default cards or SF Symbols. Because no
 deterministic closeout check existed, the conflict could resolve differently
 between otherwise similar app runs.
+
+Additional inversions remained in `.stitch/APP.md`, the Stitch prompt evidence
+order, and `stitch-loop-ios`: they ranked current native files or tokens above
+the active Stitch visual system. This could feed a generic first native pass
+back into later prompts and compound the downgrade.
 
 ## App Evidence
 
@@ -96,6 +125,23 @@ The validator checks evidence consistency; side-by-side visual judgment remains
 required. Director, visual-spine, roadmap-governance, and closeout instructions
 now treat a nonzero result as a hard promotion gate.
 
+The operation journal repair preserves PR #10's useful durable-prompt and
+single-project recovery model while making it evidence-bearing:
+
+- generation and variant operations default to the complete 10-poll contract;
+- every poll records project update time, screen IDs, response completeness,
+  and matching output rather than incrementing a counter;
+- durable prompt paths and digests are verified from app-local memory;
+- `ambiguous_timeout` and replacement authorization require the complete poll
+  budget plus final same-project reconciliation; and
+- a separate `native-design-handoff` audit fails for missing required concepts,
+  unresolved matching operations, missing artifact provenance, or deferred
+  fallback without explicit user acceptance.
+
+Operational intake may still preserve partial coverage for planning. It can no
+longer present that partial state as permission to implement the dependent
+SwiftUI surface.
+
 ## Validation And Rollout
 
 Before merge:
@@ -106,7 +152,11 @@ Before merge:
 4. confirm it blocks LotCoach for its missing audit and same-family vehicle
    evidence;
 5. confirm it preserves LawnCare's existing blocked full-app decision; and
-6. verify root starter files remain byte-identical to their deployed-template
+6. confirm the operational journal audit remains informative for legacy state
+   while the native-design-handoff gate blocks LawnCare's unresolved concepts;
+7. confirm LotCoach's five successful durable prompts pass journal integrity
+   checks, proving the regression occurred after prompt generation; and
+8. verify root starter files remain byte-identical to their deployed-template
    copies.
 
 After merge:
@@ -130,4 +180,9 @@ After merge:
 - Same-family, generic-substitute, parity-unproven, partial, missing, or deferred
   core evidence cannot pass promotion.
 - Extracted source artwork requires an explicit adoption decision.
-- Plugin tests cover both the hierarchy and the executable gate.
+- Polling recovery cannot advance on counter-only or prematurely exhausted
+  evidence.
+- Required missing concept evidence may continue into planning but blocks
+  dependent native design handoff.
+- Plugin tests cover the hierarchy, operation recovery, handoff gate, and
+  executable visual promotion gate.

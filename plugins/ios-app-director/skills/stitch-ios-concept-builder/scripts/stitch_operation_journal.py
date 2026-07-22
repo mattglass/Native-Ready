@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,6 +47,32 @@ FAILURE_CLASSES = {
     "server_error",
 }
 COVERAGE_STATUSES = {"live", "artifact_only", "missing", "deferred", "not_needed"}
+DEFAULT_REQUIRED_POLL_ATTEMPTS = {
+    "generate_screen": 10,
+    "generate_variants": 10,
+    "edit_screens": 1,
+    "create_design_system": 1,
+    "apply_design_system": 1,
+}
+ROLE_MATCH_STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "app",
+    "core",
+    "daily",
+    "detail",
+    "flow",
+    "ios",
+    "live",
+    "mobile",
+    "or",
+    "primary",
+    "screen",
+    "set",
+    "the",
+    "to",
+}
 TRANSITIONS = {
     "prepared": {"submitted", "failed", "abandoned"},
     "submitted": {"polling", "succeeded", "ambiguous_timeout", "failed"},
@@ -323,6 +350,20 @@ def prompt_sha256(prompt: str) -> str:
     return hashlib.sha256(prompt.encode("utf-8")).hexdigest()
 
 
+def required_poll_attempts(operation: dict[str, Any]) -> int:
+    recovery = operation.get("recovery") or {}
+    value = recovery.get("requiredPollAttempts")
+    if value is None:
+        value = DEFAULT_REQUIRED_POLL_ATTEMPTS.get(operation.get("kind"), 1)
+    try:
+        attempts = int(value)
+    except (TypeError, ValueError) as error:
+        raise JournalError("required poll attempts must be an integer") from error
+    if attempts < 1:
+        raise JournalError("required poll attempts must be one or greater")
+    return attempts
+
+
 def replacement_ancestor_ids(
     journal: dict[str, Any], operation: dict[str, Any]
 ) -> set[str]:
@@ -348,6 +389,8 @@ def prepare_operation(
     replacement_for: str | None = None,
     prompt: str | None = None,
     requested_screen_roles: list[str] | None = None,
+    prompt_file: str | None = None,
+    poll_attempts: int | None = None,
 ) -> dict[str, Any]:
     if kind not in OPERATION_KINDS:
         raise JournalError(f"unsupported operation kind: {kind}")
@@ -360,6 +403,13 @@ def prepare_operation(
     roles = normalize_requested_roles(screen_role, requested_screen_roles)
     roles_set = set(roles)
     policy = recovery_policy(journal)
+    required_polls = (
+        DEFAULT_REQUIRED_POLL_ATTEMPTS[kind]
+        if poll_attempts is None
+        else poll_attempts
+    )
+    if required_polls < 1:
+        raise JournalError("required poll attempts must be one or greater")
     replacement_attempt = 0
     replacement_root = operation_id
     replacement_strategy: str | None = None
@@ -448,10 +498,13 @@ def prepare_operation(
         "request": {
             "prompt": prompt,
             "promptSha256": prompt_sha256(prompt),
+            "promptFile": prompt_file,
             "requestedScreenRoles": roles,
         },
         "recovery": {
             "pollCount": 0,
+            "requiredPollAttempts": required_polls,
+            "pollRecords": [],
             "finalReconciliation": None,
             "replacementAttempt": replacement_attempt,
             "replacementRoot": replacement_root,
@@ -474,6 +527,7 @@ def transition_operation(
     failure_class: str = "none",
     new_screen_ids: list[str] | None = None,
     note: str | None = None,
+    poll_observation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if failure_class not in FAILURE_CLASSES:
         raise JournalError(f"unsupported failure class: {failure_class}")
@@ -490,6 +544,10 @@ def transition_operation(
         effective_failure = operation["failureClass"]
     if status == "ambiguous_timeout" and effective_failure != "timeout_or_connection":
         raise JournalError("ambiguous_timeout requires timeout_or_connection")
+    if status == "polling" and poll_observation is None:
+        raise JournalError(
+            "polling requires recorded project evidence; use record_poll"
+        )
     if status == "failed" and effective_failure == "none":
         raise JournalError("failed operations require a failure class")
     if status == "succeeded" and effective_failure != "none":
@@ -498,6 +556,10 @@ def transition_operation(
         "recovery",
         {
             "pollCount": 0,
+            "requiredPollAttempts": DEFAULT_REQUIRED_POLL_ATTEMPTS.get(
+                operation.get("kind"), 1
+            ),
+            "pollRecords": [],
             "finalReconciliation": None,
             "replacementAttempt": 0,
             "replacementRoot": operation_id,
@@ -517,9 +579,12 @@ def transition_operation(
     if status == "replacement_authorized":
         policy = recovery_policy(journal)
         poll_count = int(recovery.get("pollCount", 0))
-        if poll_count < 1:
+        required_polls = required_poll_attempts(operation)
+        poll_records = recovery.get("pollRecords") or []
+        if poll_count < required_polls or len(poll_records) < required_polls:
             raise JournalError(
-                "replacement authorization requires at least one recorded poll"
+                "replacement authorization requires the complete polling budget: "
+                f"{poll_count}/{required_polls} evidence-bearing polls recorded"
             )
         final_reconciliation = recovery.get("finalReconciliation") or {}
         if final_reconciliation.get("outcome") != "no_matching_output":
@@ -541,12 +606,23 @@ def transition_operation(
             raise JournalError(
                 "replacement budget exhausted; reconcile, defer, or explicitly reconfigure recovery"
             )
+    if status == "ambiguous_timeout":
+        poll_count = int(recovery.get("pollCount", 0))
+        required_polls = required_poll_attempts(operation)
+        poll_records = recovery.get("pollRecords") or []
+        if poll_count < required_polls or len(poll_records) < required_polls:
+            raise JournalError(
+                "ambiguous_timeout requires the complete polling budget: "
+                f"{poll_count}/{required_polls} evidence-bearing polls recorded"
+            )
 
     operation["status"] = status
     operation["failureClass"] = effective_failure
     operation["updatedAt"] = now_iso()
     if status == "polling":
-        recovery["pollCount"] = int(recovery.get("pollCount", 0)) + 1
+        poll_records = recovery.setdefault("pollRecords", [])
+        poll_records.append(poll_observation)
+        recovery["pollCount"] = len(poll_records)
         recovery["finalReconciliation"] = None
     if status == "ambiguous_timeout":
         recovery["finalReconciliation"] = None
@@ -572,6 +648,69 @@ def transition_operation(
     return operation
 
 
+def record_poll(
+    journal: dict[str, Any],
+    operation_id: str,
+    observed_screen_ids: list[str] | None,
+    observed_project_updated_at: str,
+    response_complete: bool,
+    matching_screen_ids: list[str] | None = None,
+    note: str | None = None,
+) -> dict[str, Any]:
+    operation = find_operation(journal, operation_id)
+    if operation.get("status") not in {"submitted", "polling", "ambiguous_timeout"}:
+        raise JournalError(
+            "poll evidence can only be recorded for a submitted or timed-out operation"
+        )
+    recovery = operation.get("recovery") or {}
+    poll_count = int(recovery.get("pollCount", 0))
+    required_polls = required_poll_attempts(operation)
+    if poll_count >= required_polls:
+        raise JournalError(
+            "polling budget is exhausted; transition to ambiguous_timeout and "
+            "perform final same-project reconciliation"
+        )
+    project_updated_at = observed_project_updated_at.strip()
+    if not project_updated_at:
+        raise JournalError("poll evidence requires the observed project update time")
+    observed = sorted(set(observed_screen_ids or []))
+    matching = sorted(set(matching_screen_ids or []))
+    if not set(matching).issubset(observed):
+        raise JournalError("matching poll screen IDs must be present in the observed list")
+    if matching and not response_complete:
+        raise JournalError("matching output requires a complete poll response")
+
+    observation = {
+        "recordedAt": now_iso(),
+        "projectId": operation.get("projectId"),
+        "observedProjectUpdatedAt": project_updated_at,
+        "observedScreenIds": observed,
+        "responseComplete": response_complete,
+        "matchingScreenIds": matching,
+        "outcome": "matching_output" if matching else "unchanged_or_unmatched",
+    }
+    if matching:
+        recovery = operation.setdefault("recovery", {})
+        poll_records = recovery.setdefault("pollRecords", [])
+        poll_records.append(observation)
+        recovery["pollCount"] = len(poll_records)
+        return transition_operation(
+            journal,
+            operation_id,
+            "succeeded",
+            new_screen_ids=matching,
+            note=note,
+        )
+    return transition_operation(
+        journal,
+        operation_id,
+        "polling",
+        failure_class="timeout_or_connection",
+        note=note,
+        poll_observation=observation,
+    )
+
+
 def record_final_reconciliation(
     journal: dict[str, Any],
     operation_id: str,
@@ -588,9 +727,13 @@ def record_final_reconciliation(
             "final reconciliation can only be recorded for an ambiguous timeout"
         )
     recovery = operation.get("recovery") or {}
-    if int(recovery.get("pollCount", 0)) < 1:
+    poll_count = int(recovery.get("pollCount", 0))
+    required_polls = required_poll_attempts(operation)
+    poll_records = recovery.get("pollRecords") or []
+    if poll_count < required_polls or len(poll_records) < required_polls:
         raise JournalError(
-            "final reconciliation requires at least one recorded poll"
+            "final reconciliation requires the complete polling budget: "
+            f"{poll_count}/{required_polls} evidence-bearing polls recorded"
         )
     project_updated_at = observed_project_updated_at.strip()
     if not project_updated_at:
@@ -663,7 +806,10 @@ def set_capability(
     }
 
 
-def audit_journal(journal: dict[str, Any]) -> tuple[list[str], list[str], list[str]]:
+def audit_journal(
+    journal: dict[str, Any],
+    repo_root: Path | None = None,
+) -> tuple[list[str], list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
     info: list[str] = []
@@ -692,8 +838,63 @@ def audit_journal(journal: dict[str, Any]) -> tuple[list[str], list[str], list[s
             warnings.append(f"operation {operation_id} has no persisted prompt")
         elif digest != prompt_sha256(prompt):
             errors.append(f"operation {operation_id} prompt digest does not match")
+        if repo_root is not None and isinstance(prompt, str) and prompt.strip():
+            prompt_file = request.get("promptFile") or (
+                f".stitch/operations/prompts/{operation_id}.md"
+            )
+            candidate = Path(str(prompt_file))
+            resolved = (
+                candidate if candidate.is_absolute() else repo_root / candidate
+            ).resolve()
+            try:
+                resolved.relative_to(repo_root.resolve())
+            except ValueError:
+                errors.append(
+                    f"operation {operation_id} prompt file is outside the app repo"
+                )
+            else:
+                if not resolved.is_file():
+                    warnings.append(
+                        f"operation {operation_id} has no durable prompt file: "
+                        f"{prompt_file}"
+                    )
+                elif prompt_sha256(resolved.read_text(encoding="utf-8")) != digest:
+                    errors.append(
+                        f"operation {operation_id} durable prompt file digest does not match"
+                    )
 
         recovery = operation.get("recovery") or {}
+        try:
+            required_polls = required_poll_attempts(operation)
+        except JournalError as error:
+            errors.append(f"operation {operation_id}: {error}")
+            required_polls = 1
+        poll_records = recovery.get("pollRecords") or []
+        poll_count = int(recovery.get("pollCount", 0))
+        if poll_count != len(poll_records):
+            warnings.append(
+                f"operation {operation_id} poll count lacks matching evidence records"
+            )
+        status = operation.get("status")
+        if status in {"ambiguous_timeout", "replacement_authorized"} and (
+            poll_count < required_polls or len(poll_records) < required_polls
+        ):
+            errors.append(
+                f"operation {operation_id} reached {status} without the complete "
+                f"polling budget: {min(poll_count, len(poll_records))}/"
+                f"{required_polls} evidence-bearing polls"
+            )
+        if status == "replacement_authorized":
+            final_reconciliation = recovery.get("finalReconciliation") or {}
+            if (
+                final_reconciliation.get("outcome") != "no_matching_output"
+                or not final_reconciliation.get("responseComplete")
+                or final_reconciliation.get("projectId") != operation.get("projectId")
+            ):
+                errors.append(
+                    f"operation {operation_id} reached replacement_authorized "
+                    "without complete same-project no-matching-output reconciliation"
+                )
         replacement_attempt = int(recovery.get("replacementAttempt", 0))
         if replacement_attempt > policy["maxReplacementAttempts"]:
             errors.append(f"operation {operation_id} exceeds replacement budget")
@@ -710,7 +911,6 @@ def audit_journal(journal: dict[str, Any]) -> tuple[list[str], list[str], list[s
                 policy["maxReplacementAttempts"] - replacement_attempt, 0
             )
             roles = ", ".join(operation_roles(operation)) or "unknown roles"
-            poll_count = int(recovery.get("pollCount", 0))
             final_reconciliation = recovery.get("finalReconciliation") or {}
             reconciled = (
                 final_reconciliation.get("outcome") == "no_matching_output"
@@ -721,9 +921,12 @@ def audit_journal(journal: dict[str, Any]) -> tuple[list[str], list[str], list[s
                 and bool(remaining)
                 and reconciled
             )
-            if poll_count < 1:
+            if poll_count < required_polls or len(poll_records) < required_polls:
                 prefix = "POLLING REQUIRED:"
-                suffix = "record at least one same-project poll before final reconciliation"
+                suffix = (
+                    f"record {required_polls - min(poll_count, len(poll_records))} "
+                    "more evidence-bearing same-project polls before final reconciliation"
+                )
             elif not reconciled:
                 prefix = "FINAL RECONCILIATION REQUIRED:"
                 suffix = (
@@ -770,6 +973,8 @@ def audit_journal(journal: dict[str, Any]) -> tuple[list[str], list[str], list[s
 
 def audit_concept_coverage(
     records: list[dict[str, Any]],
+    require_design_handoff: bool = False,
+    repo_root: Path | None = None,
 ) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -789,14 +994,140 @@ def audit_concept_coverage(
             errors.append(f"concept coverage {role} has unsupported status: {status}")
             continue
         required = bool(record.get("required", False))
-        if required and status == "missing" and not record.get("linkedTask"):
-            errors.append(f"required missing concept role has no expansion task: {role}")
+        if required and status == "missing":
+            if not record.get("linkedTask"):
+                errors.append(f"required missing concept role has no expansion task: {role}")
+            if require_design_handoff:
+                errors.append(f"required concept role blocks native design handoff: {role}")
+            else:
+                warnings.append(
+                    f"DESIGN HANDOFF BLOCKED: required concept role is missing: {role}"
+                )
         if required and status == "deferred" and not str(record.get("note", "")).strip():
             errors.append(f"required deferred concept role has no reason: {role}")
+        if (
+            required
+            and status == "deferred"
+            and require_design_handoff
+            and record.get("userAcceptedNativeFallback") is not True
+        ):
+            errors.append(
+                "required deferred concept role lacks explicit user acceptance "
+                f"for native fallback: {role}"
+            )
+        if required and status == "not_needed":
+            errors.append(f"required concept role cannot be not_needed: {role}")
         if status == "live" and not record.get("screenIds"):
-            warnings.append(f"live concept role has no screen ID provenance: {role}")
+            message = f"live concept role has no screen ID provenance: {role}"
+            (errors if require_design_handoff and required else warnings).append(message)
         if status == "artifact_only" and not record.get("artifactPaths"):
-            warnings.append(f"artifact-only concept role has no artifact path: {role}")
+            message = f"artifact-only concept role has no artifact path: {role}"
+            (errors if require_design_handoff and required else warnings).append(message)
+        if (
+            require_design_handoff
+            and required
+            and status == "artifact_only"
+            and repo_root is not None
+        ):
+            for artifact in record.get("artifactPaths") or []:
+                path = Path(str(artifact))
+                resolved = path if path.is_absolute() else repo_root / path
+                if not resolved.is_file():
+                    errors.append(
+                        f"artifact-only concept evidence does not exist: {role}: {artifact}"
+                    )
+    return errors, warnings
+
+
+def role_key(value: Any) -> str:
+    return "-".join(re.findall(r"[a-z0-9]+", str(value).lower()))
+
+
+def role_keys_overlap(left: str, right: str) -> bool:
+    left_tokens = set(left.split("-")) - {""}
+    right_tokens = set(right.split("-")) - {""}
+    if not left_tokens or not right_tokens:
+        return False
+    if left_tokens.issubset(right_tokens) or right_tokens.issubset(left_tokens):
+        return True
+    meaningful_overlap = (
+        left_tokens & right_tokens
+    ) - ROLE_MATCH_STOP_WORDS
+    return any(len(token) >= 4 for token in meaningful_overlap)
+
+
+def audit_design_handoff(
+    journal: dict[str, Any],
+    records: list[dict[str, Any]],
+    repo_root: Path | None = None,
+    target_roles: list[str] | None = None,
+) -> tuple[list[str], list[str]]:
+    target_keys = {role_key(role) for role in target_roles or []}
+    target_keys.discard("")
+    selected_records = records
+    if target_keys:
+        selected_records = [
+            {**record, "required": True}
+            for record in records
+            if any(
+                role_keys_overlap(role_key(record.get("role")), target_key)
+                for target_key in target_keys
+            )
+        ]
+        if not selected_records:
+            return (
+                [
+                    "native design handoff target has no concept coverage record: "
+                    + ", ".join(sorted(target_keys))
+                ],
+                [],
+            )
+    errors, warnings = audit_concept_coverage(
+        selected_records,
+        require_design_handoff=True,
+        repo_root=repo_root,
+    )
+    active_project_id = (journal.get("activeProject") or {}).get("id")
+    for record in selected_records:
+        if record.get("required") is True and record.get("status") == "live":
+            if not active_project_id:
+                errors.append(
+                    "live concept evidence requires an active Stitch project: "
+                    f"{record.get('role')}"
+                )
+            elif record.get("projectId") != active_project_id:
+                errors.append(
+                    "live concept evidence is not tied to the active Stitch project: "
+                    f"{record.get('role')}"
+                )
+    required_roles = {
+        role_key(record.get("role"))
+        for record in selected_records
+        if isinstance(record, dict)
+        and record.get("required") is True
+        and record.get("status") != "not_needed"
+    }
+    required_roles.discard("")
+    if not required_roles:
+        errors.append("native design handoff has no required concept coverage records")
+
+    for operation in journal.get("operations", []):
+        if operation.get("status") not in UNRESOLVED_STATUSES:
+            continue
+        operation_role_keys = {role_key(role) for role in operation_roles(operation)}
+        blocked_roles = sorted(
+            required_role
+            for required_role in required_roles
+            if any(
+                role_keys_overlap(required_role, operation_role)
+                for operation_role in operation_role_keys
+            )
+        )
+        if blocked_roles:
+            errors.append(
+                f"unresolved Stitch operation {operation.get('id')} blocks native "
+                f"design handoff for: {', '.join(blocked_roles)}"
+            )
     return errors, warnings
 
 
@@ -832,12 +1163,34 @@ def command_register_reference(args: argparse.Namespace) -> int:
     return 0
 
 
+def durable_prompt_reference(repo_root: Path, prompt_file: Path) -> str:
+    resolved_root = repo_root.resolve()
+    prompt_root = (resolved_root / ".stitch" / "operations" / "prompts").resolve()
+    resolved_prompt = prompt_file.resolve()
+    try:
+        resolved_prompt.relative_to(prompt_root)
+    except ValueError as error:
+        raise JournalError(
+            "prompt file must be durable app memory under "
+            ".stitch/operations/prompts/"
+        ) from error
+    if not resolved_prompt.is_file():
+        raise JournalError(f"prompt file does not exist: {resolved_prompt}")
+    return resolved_prompt.relative_to(resolved_root).as_posix()
+
+
 def command_prepare(args: argparse.Namespace) -> int:
     journal = load_journal(args.repo_root)
     project_id = args.project_id or (journal.get("activeProject") or {}).get("id")
     if not project_id:
         raise JournalError("project ID is required before preparing an operation")
-    prompt = args.prompt_file.read_text(encoding="utf-8")
+    prompt_path = (
+        args.prompt_file
+        if args.prompt_file.is_absolute()
+        else args.repo_root / args.prompt_file
+    )
+    prompt_reference = durable_prompt_reference(args.repo_root, prompt_path)
+    prompt = prompt_path.read_text(encoding="utf-8")
     operation = prepare_operation(
         journal,
         args.operation_id,
@@ -848,6 +1201,8 @@ def command_prepare(args: argparse.Namespace) -> int:
         args.replacement_for,
         prompt,
         args.requested_screen_role,
+        prompt_reference,
+        args.required_poll_attempts,
     )
     save_journal(args.repo_root, journal)
     recovery = operation["recovery"]
@@ -861,6 +1216,25 @@ def command_prepare(args: argparse.Namespace) -> int:
             "WARNING: replacement repeats the original prompt; reconsider a "
             "revised or decomposed request before submitting"
         )
+    return 0
+
+
+def command_record_poll(args: argparse.Namespace) -> int:
+    journal = load_journal(args.repo_root)
+    operation = record_poll(
+        journal,
+        args.operation_id,
+        args.observed_screen_id,
+        args.observed_project_updated_at,
+        args.response_complete,
+        args.matching_screen_id,
+        args.note,
+    )
+    save_journal(args.repo_root, journal)
+    print(
+        f"poll {operation.get('recovery', {}).get('pollCount', 0)}/"
+        f"{required_poll_attempts(operation)}: {operation.get('status')}"
+    )
     return 0
 
 
@@ -934,15 +1308,30 @@ def command_capability(args: argparse.Namespace) -> int:
 
 def command_audit(args: argparse.Namespace) -> int:
     journal = load_journal(args.repo_root)
-    errors, warnings, info = audit_journal(journal)
+    errors, warnings, info = audit_journal(journal, args.repo_root)
     metadata_path = args.repo_root / ".stitch/metadata.json"
     if metadata_path.exists():
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        coverage_errors, coverage_warnings = audit_concept_coverage(
-            metadata.get("conceptCoverage", [])
-        )
+        if not isinstance(metadata, dict):
+            raise JournalError("metadata root must be a JSON object")
+        records = metadata.get("conceptCoverage", [])
+        if not isinstance(records, list) or not all(
+            isinstance(record, dict) for record in records
+        ):
+            raise JournalError("metadata conceptCoverage must be a list of objects")
+        if args.gate == "native-design-handoff":
+            coverage_errors, coverage_warnings = audit_design_handoff(
+                journal,
+                records,
+                args.repo_root,
+                args.screen_role,
+            )
+        else:
+            coverage_errors, coverage_warnings = audit_concept_coverage(records)
         errors.extend(coverage_errors)
         warnings.extend(coverage_warnings)
+    elif args.gate == "native-design-handoff":
+        errors.append("native design handoff requires .stitch/metadata.json")
     for item in errors:
         print(f"ERROR: {item}")
     for item in warnings:
@@ -1006,9 +1395,26 @@ def build_parser() -> argparse.ArgumentParser:
     prepare.add_argument("--screen-role", required=True)
     prepare.add_argument("--requested-screen-role", action="append", default=[])
     prepare.add_argument("--prompt-file", type=Path, required=True)
+    prepare.add_argument("--required-poll-attempts", type=int)
     prepare.add_argument("--baseline-screen-id", action="append", default=[])
     prepare.add_argument("--replacement-for")
     prepare.set_defaults(func=command_prepare)
+
+    poll = subparsers.add_parser("record-poll")
+    poll.add_argument("--repo-root", type=Path, default=Path.cwd())
+    poll.add_argument("--operation-id", required=True)
+    poll.add_argument("--observed-screen-id", action="append", default=[])
+    poll.add_argument("--observed-project-updated-at", required=True)
+    poll_response = poll.add_mutually_exclusive_group(required=True)
+    poll_response.add_argument(
+        "--response-complete", dest="response_complete", action="store_true"
+    )
+    poll_response.add_argument(
+        "--response-truncated", dest="response_complete", action="store_false"
+    )
+    poll.add_argument("--matching-screen-id", action="append", default=[])
+    poll.add_argument("--note")
+    poll.set_defaults(func=command_record_poll)
 
     transition = subparsers.add_parser("transition")
     transition.add_argument("--repo-root", type=Path, default=Path.cwd())
@@ -1062,6 +1468,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     audit = subparsers.add_parser("audit")
     audit.add_argument("--repo-root", type=Path, default=Path.cwd())
+    audit.add_argument(
+        "--gate",
+        choices=["operational", "native-design-handoff"],
+        default="operational",
+    )
+    audit.add_argument(
+        "--screen-role",
+        action="append",
+        default=[],
+        help="limit native design handoff validation to a dependent screen role",
+    )
     audit.set_defaults(func=command_audit)
 
     return parser
