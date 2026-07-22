@@ -1,13 +1,13 @@
-# READY - Autonomous iOS App Development Engine
+# NATIVE READY - Autonomous iOS App Development Engine
 
 ## Purpose
-READY is an autonomous, roadmap-driven iOS app development engine designed and
+NATIVE READY is an autonomous, roadmap-driven iOS app development engine designed and
 built entirely with Codex CLI and the Codex desktop app, using GPT-5.5 and
 GPT-5.6. It bundles 10 specialized skills in the `ios-app-director` plugin
 with a reusable app scaffold, persistent project memory, design-first planning,
 native SwiftUI delivery, and live validation loops.
 
-Once an app is bootstrapped and a goal is active, READY can keep the build
+Once an app is bootstrapped and a goal is active, NATIVE READY can keep the build
 moving: select the next roadmap task, explore or interpret Stitch concepts,
 implement native features, validate them with XcodeBuildMCP, capture evidence,
 update the baton, and continue until a real blocker or product decision needs a
@@ -16,7 +16,7 @@ more like directing an AI-powered product team that remembers where it is going.
 
 ## Execution model
 “Autonomous” describes how the development loop behaves inside an active Codex
-session with the permissions and tools the developer provides. READY is not a
+session with the permissions and tools the developer provides. NATIVE READY is not a
 detached background daemon: Codex supplies the reasoning and execution surface,
 XcodeBuildMCP supplies native build and simulator feedback, Stitch supplies the
 visual concept loop, and Cloudflare tooling can extend the app into real service
@@ -36,9 +36,9 @@ It is designed to support:
 
 ## Requirements
 
-READY's complete native loop requires a compatible Mac and Xcode installation,
+NATIVE READY's complete native loop requires a compatible Mac and Xcode installation,
 an iOS Simulator runtime, Codex Desktop or Codex CLI, one active copy of the 10
-READY skills, and XcodeBuildMCP. The automatic design-first path also requires
+NATIVE READY skills, and XcodeBuildMCP. The automatic design-first path also requires
 a Google account with Stitch access plus an authenticated Stitch MCP
 connection. Cloudflare and Apple Developer Program access are conditional on
 the app's backend and distribution needs.
@@ -50,7 +50,7 @@ capabilities.
 ## Core layers
 ### Global engine layer
 The shared intelligence can be installed globally as the complete 10-skill
-READY suite:
+NATIVE READY suite:
 
 - `ios-app-bootstrap`
 - `ios-app-director`
@@ -65,7 +65,7 @@ READY suite:
 
 The bundled `ios-app-director` plugin packages these same 10 skills for
 installation, testing, and distribution. It is an alternate skill source, not
-a separate workflow tier. These 10 skills are the complete READY workflow:
+a separate workflow tier. These 10 skills are the complete NATIVE READY workflow:
 prompt enhancement, semantic design-system synthesis, product-aware visual
 direction, and Stitch generation/edit routing are owned by the relevant skills
 in the bundle rather than delegated to external design wrappers.
@@ -147,7 +147,7 @@ repo-root/
 ```
 
 ## How to use this template
-1. Clone, copy or unzip this READY template into a new app folder/repo.
+1. Clone, copy or unzip this NATIVE READY template into a new app folder/repo.
 2. Read `SETUP.md` and complete the required Xcode, Codex, skill, MCP, and account preflight.
 3. Open Codex Desktop or Codex CLI at the copied repo root and make the complete app brief the first message.
 4. Use `docs/bootstrap-prompt.md` and `$ios-app-bootstrap` as the single public setup entry point. `docs/design-first-setup-prompt.md` adds advanced Stitch inputs to that same entry point.
@@ -156,7 +156,7 @@ repo-root/
 7. Use `ios-feature-closeout` to reconcile roadmap, baton, evidence, risk, and next-step handoff after meaningful work.
 
 ## Optional bundled plugin install
-READY works without installing the repo-local plugin when the matching global skills are available. The default `.agents/plugins/marketplace.json` is intentionally empty so a copied app repo does not silently activate duplicate `ios-app-*` skills.
+NATIVE READY works without installing the repo-local plugin when the matching global skills are available. The default `.agents/plugins/marketplace.json` is intentionally empty so a copied app repo does not silently activate duplicate `ios-app-*` skills.
 
 Developers who intentionally want the packaged local copy can use `.agents/plugins/marketplace.opt-in-ios-app-director.json`. That marketplace points at `plugins/ios-app-director/` and keeps the bundled plugin an explicit install choice.
 
@@ -166,7 +166,7 @@ The bundled plugin manifest is skills-only by default. The plugin includes `.mcp
 The default bootstrap is also the design-first path. Use
 `docs/design-first-setup-prompt.md` when the first message needs richer Stitch
 inputs; it still starts with `$ios-app-bootstrap`. The bootstrap may use the
-internal setup coordinator and other READY specialists to provide:
+internal setup coordinator and other NATIVE READY specialists to provide:
 - concept generation from bootstrap answers when no Stitch project exists yet
 - one provenance-backed active Stitch mutation project per visual world, without
   fallback projects after payload errors, timeouts, or empty reads

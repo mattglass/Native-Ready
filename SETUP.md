@@ -1,6 +1,6 @@
-# READY iOS App Setup
+# NATIVE READY iOS App Setup
 
-READY turns a copied template and an app idea into coherent project memory, design evidence, a native SwiftUI Xcode project, a first simulator launch, and a roadmap baton for autonomous delivery.
+NATIVE READY turns a copied template and an app idea into coherent project memory, design evidence, a native SwiftUI Xcode project, a first simulator launch, and a roadmap baton for autonomous delivery.
 
 Use the same public entry point in Codex Desktop and Codex CLI: `ios-app-bootstrap`.
 
@@ -8,14 +8,14 @@ Use the same public entry point in Codex Desktop and Codex CLI: `ios-app-bootstr
 
 ### Required for a complete bootstrap
 
-| Requirement | Why READY needs it | Check |
+| Requirement | Why NATIVE READY needs it | Check |
 | --- | --- | --- |
 | A Mac that supports the installed Xcode version | Native iOS builds and Simulator require macOS and Xcode | Compare your Mac/Xcode combination with [Apple's Xcode requirements](https://developer.apple.com/xcode/system-requirements/) |
-| Xcode with the intended iOS SDK and at least one iPhone Simulator runtime | READY creates, builds, launches, and inspects a real SwiftUI app | Open Xcode once and finish any component/runtime installation |
-| Codex Desktop or Codex CLI, signed in | Codex supplies the reasoning and execution session | Start Codex in the copied READY repo root |
+| Xcode with the intended iOS SDK and at least one iPhone Simulator runtime | NATIVE READY creates, builds, launches, and inspects a real SwiftUI app | Open Xcode once and finish any component/runtime installation |
+| Codex Desktop or Codex CLI, signed in | Codex supplies the reasoning and execution session | Start Codex in the copied NATIVE READY repo root |
 | Workspace trust and write permission for the copied repo | Bootstrap must update memory, generate the Xcode project, and capture evidence | Allow the repo path when Codex asks |
-| One active copy of the 10 READY skills | The skills define the bootstrap, design, scaffold, delivery, and closeout contracts | Use either the global skills or the bundled plugin—not both |
-| XcodeBuildMCP | READY uses it for scheme discovery, simulator build/run, screenshots, logs, and UI checks | Run its doctor or confirm `session_show_defaults` is available in Codex |
+| One active copy of the 10 NATIVE READY skills | The skills define the bootstrap, design, scaffold, delivery, and closeout contracts | Use either the global skills or the bundled plugin—not both |
+| XcodeBuildMCP | NATIVE READY uses it for scheme discovery, simulator build/run, screenshots, logs, and UI checks | Run its doctor or confirm `session_show_defaults` is available in Codex |
 
 XcodeBuildMCP currently documents macOS 14.5+, Xcode 16+, and Node.js 18+ for its npm/npx installation path. A Homebrew installation does not require Node.js. Follow the current [XcodeBuildMCP installation guide](https://www.xcodebuildmcp.com/docs/installation) when those requirements change.
 
@@ -42,7 +42,7 @@ Stitch is the preferred concept path for the full design-first experience. If St
 ### Optional services
 
 - Cloudflare access and authenticated Cloudflare tooling are needed only when the app actually requires Workers, storage, APIs, or other Cloudflare services.
-- Git, GitHub, CI, and a changelog are recommended for shipping software but are not prerequisites for copying or locally testing READY.
+- Git, GitHub, CI, and a changelog are recommended for shipping software but are not prerequisites for copying or locally testing NATIVE READY.
 - The bundled local plugin is optional when the matching global skills are installed.
 
 ### Quick local checks
@@ -64,7 +64,7 @@ npx --package xcodebuildmcp@latest xcodebuildmcp-doctor
 
 ## 2. Copy The Template
 
-Copy or unzip `APP-TEMPLATE-FOR-AI-BUILD-READY` into a new app folder:
+Copy or unzip `APP-TEMPLATE-FOR-AI-BUILD-NATIVE-READY` into a new app folder:
 
 ```text
 /Users/you/Sites/MYAPP/
@@ -81,9 +81,9 @@ MYAPP/
 
 Keep Codex opened at `MYAPP/`, where `AGENTS.md`, `docs/`, `.stitch/`, and `plugins/` live. Do not start the task from the nested Swift source folder.
 
-## 3. Choose One READY Skill Source
+## 3. Choose One NATIVE READY Skill Source
 
-The complete READY suite contains exactly these 10 skills:
+The complete NATIVE READY suite contains exactly these 10 skills:
 
 - `ios-app-bootstrap`
 - `ios-app-director`
@@ -134,7 +134,7 @@ Before bootstrap:
 Open a fresh task at the copied repo root and make the complete product brief the first message. Use [docs/bootstrap-prompt.md](docs/bootstrap-prompt.md), or start with this compact form:
 
 ```md
-Use $ios-app-bootstrap as the single READY setup entry point for this repo.
+Use $ios-app-bootstrap as the single NATIVE READY setup entry point for this repo.
 
 App name: [APP_NAME]
 App idea: [SHORT_PRODUCT_IDEA]
@@ -155,7 +155,7 @@ Complete bootstrap through a generated native Xcode project, first simulator bui
 
 Do not begin with a separate “What should I do?” turn and paste the product brief later. Giving the product frame in the first message produces the same routing context in both Codex surfaces.
 
-`ios-app-bootstrap` may internally coordinate the other READY skills. You should not need to choose `ios-setup-orchestrator` as a second front door.
+`ios-app-bootstrap` may internally coordinate the other NATIVE READY skills. You should not need to choose `ios-setup-orchestrator` as a second front door.
 
 ## 6. Bootstrap Completion Contract
 
@@ -219,7 +219,7 @@ Use `stitch-loop-ios` when a delivery task needs another bounded generation, edi
 - **No Xcode project appeared:** resume `$ios-app-bootstrap`; memory-only output is not complete bootstrap.
 - **A Stitch mutation timed out:** record the ambiguous operation, avoid an untracked replacement, and continue independent native setup when possible.
 - **A missing optional screen became the active blocker:** move it to a dependency-correct roadmap task and activate the best executable native task.
-- **A legacy Stitch wrapper appeared:** retire or disable its implicit global invocation; it is not part of the 10-skill READY bundle.
+- **A legacy Stitch wrapper appeared:** retire or disable its implicit global invocation; it is not part of the 10-skill NATIVE READY bundle.
 - **A generic or unrelated target/test target appeared:** remove stale global/project instructions and derive names from the current app.
 - **Cloudflare auth failed in a local-only app:** classify Cloudflare as optional or not in scope and continue.
 - **Desktop and CLI differ:** verify the same Codex version, model/effort, first-turn prompt, workspace root, skill source, permissions, and MCP availability before comparing results.
