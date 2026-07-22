@@ -21,6 +21,13 @@ started from `f320378`, the merge of PR #10. The intervening changes were:
 
 | PR | Change | Design-regression finding |
 |---|---|---|
+| #1 | Fixed baton YAML frontmatter | Baton schema and validator only; no visual-authority change |
+| #2 | Updated NATIVE READY branding | README and setup copy only |
+| #3 | Added global plugin installation | Marketplace, manifest, and installation docs; no visual-authority change |
+| #4 | Added licensing and plugin artwork | Packaging, license, and brand assets only |
+| #5 | Split engine and plugin licensing | License-boundary changes only |
+| #6 | Fixed Stitch API-key onboarding | Authentication, MCP, and setup changes only |
+| #7 | Hardened first-run bootstrap | Xcode/toolchain, scaffold, launch, and receipt changes; no visual-authority change |
 | #8 | Made Cloudflare MCP opt-in | Configuration-only; no visual workflow change |
 | #9 | Hardened standalone plugin deployment and script path resolution | Did not weaken visual rules; made the committed starter more consistently deployable |
 | #10 | Added bounded Stitch timeout recovery and longer MCP timeout | Did not remove or relax visual fidelity rules |
