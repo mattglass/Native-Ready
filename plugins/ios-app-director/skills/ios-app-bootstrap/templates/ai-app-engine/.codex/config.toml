@@ -50,7 +50,7 @@ approval_mode = "approve"
 url = "https://stitch.googleapis.com/mcp"
 env_http_headers = { "X-Goog-Api-Key" = "STITCH_API_KEY" }
 startup_timeout_sec = 20
-tool_timeout_sec = 60
+tool_timeout_sec = 300
 enabled = true
 
 [mcp_servers.xcodebuildmcp]

@@ -64,7 +64,7 @@ If no Stitch project or screen set exists yet, use `stitch-ios-concept-builder` 
 
 Resolve one active Stitch project and retain it throughout setup. Follow the
 shared Stitch operation policy for project provenance, mutation preflight,
-truthful result reporting, timeout recovery, and replacement authorization.
+truthful result reporting, timeout recovery, and bounded autonomous replacement.
 Never recover from an invalid tool payload or an empty screen list by creating
 another project.
 

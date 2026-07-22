@@ -71,6 +71,12 @@ Default first screen set:
 
 For non-health apps, translate the blueprint semantically rather than copying health-specific names.
 
+Plan the set as focused mutation units as well as a coherent flow. Default to
+one requested screen role per `generate_screen_from_text` call. When the active
+tool explicitly supports a compound request and a small batch is materially
+better, record every requested role in the operation journal so timeout
+recovery can decompose it safely.
+
 When the app targets kids, families, creativity, learning, games, wellness,
 finance, health, or another trust-heavy domain, treat onboarding as a mini-flow,
 not a single welcome screen. Generate enough onboarding screens to reveal:
@@ -88,7 +94,10 @@ Before the first Stitch call, verify that `STITCH_API_KEY` is available to the c
 When Stitch MCP tools are available:
 - use `create_project` if no project exists
 - use `generate_screen_from_text` for the first screen
-- use `generate_variants` or additional `generate_screen_from_text` calls for related screens
+- use focused additional `generate_screen_from_text` calls for distinct related
+  screens; do not pack a whole screen set into one prompt only to reduce calls
+- use `generate_variants` for a small comparable exploration of one real
+  product decision
 - use mobile device type for iPhone-first work
 - build every generation, variant, or edit prompt with
   `references/ios-stitch-prompt-contract.md`
@@ -109,13 +118,21 @@ when available.
 - Once a project is adopted, keep using it. Tool errors must not create fallback
   projects or cause calls against example/stale IDs.
 - Snapshot screen IDs before a mutation, prepare the journal operation, and
-  classify its result before reporting progress.
+  classify its result before reporting progress. Persist the exact prompt with
+  `--prompt-file` and list each requested role with
+  `--requested-screen-role`; never put secrets in a Stitch prompt.
 - Treat an invalid argument as a payload problem, not a project problem.
 - Treat `auth_required` with a present `STITCH_API_KEY` as a key-propagation or key-validity problem, not permission to create a replacement project.
 - Treat a timeout as outcome unknown and poll the same project according to the
-  current Stitch tool contract.
-- When polling is exhausted, record `ambiguous_timeout` and surface any needed
-  replacement decision promptly while continuing dependency-safe work.
+  current Stitch tool contract, recording each poll in the journal.
+- When polling is exhausted, record `ambiguous_timeout` and act on the configured
+  recovery mode immediately; do not finish unrelated work first.
+- Default READY recovery to `autonomous`: perform one final same-project
+  reconciliation, policy-authorize one linked replacement, and continue the
+  loop without asking the user. For a compound request, decompose the recovery
+  into focused screen roles instead of repeating the compound prompt.
+- Escalate to the user only when recovery mode is `manual`, the bounded recovery
+  is exhausted, or the remaining choice changes product intent.
 
 These invariants do not constrain prompt content, screen-set size, visual
 direction, or the decision to generate additional coherent variants.
@@ -129,6 +146,9 @@ After generation:
 - update `.stitch/metadata.json` with primary project and reference screens when safe
 - reconcile requested/product-required screen roles as `live`,
   `artifact_only`, `missing`, `deferred`, or `not_needed`
+- generate a required `missing` role autonomously when no unresolved operation
+  already covers it; missing concept evidence is work for the Stitch loop, not
+  a routine user decision
 - keep each required missing role actionable through a `stitch_art_expansion`
   task rather than treating the concept set as silently complete
 - hand off to `stitch-ios-intake`

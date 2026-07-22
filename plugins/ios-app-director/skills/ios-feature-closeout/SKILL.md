@@ -115,7 +115,7 @@ live project screen list, saved artifacts, and `conceptCoverage`. A submitted or
 timed-out mutation is not completion evidence. The task may be `done` only when
 the needed output is verified and intake/coverage is updated, or when the user
 explicitly changes or defers the requirement. Keep `ambiguous_timeout` as an
-actionable recovery state and surface replacement authorization promptly.
+actionable recovery state and run configured autonomous recovery promptly.
 
 Before closing a dependent native or design task, confirm that each required
 concept role it relies on is `live`, adequately `artifact_only`, or explicitly

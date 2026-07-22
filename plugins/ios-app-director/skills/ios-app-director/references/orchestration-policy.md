@@ -75,6 +75,7 @@ An optional or out-of-scope MCP startup failure is not a stop condition. Record
 and ignore it unless current product scope requires that capability.
 
 An ambiguous Stitch timeout blocks only its dependent task chain. Continue
-other dependency-safe work, but surface replacement authorization as soon as
+other dependency-safe work, but run configured autonomous recovery as soon as
 the prescribed polling budget is exhausted instead of waiting for roadmap
-exhaustion.
+exhaustion. Ask the user only when recovery mode is manual, the bounded attempt
+is exhausted, or the remaining choice changes product intent.

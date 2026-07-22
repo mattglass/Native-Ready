@@ -114,10 +114,15 @@ screen or state in the existing visual world.
 
 For every project-specific read or mutation, use the active project's recorded
 provenance and the shared Stitch operation policy. When the operation journal
-helper is available, prepare and transition the operation there. Do not create
-a fallback project after a payload error, empty list, design-system failure, or
-timeout. An ambiguous timed-out operation stays attached to the screen role;
-surface replacement authorization promptly if it blocks the baton.
+helper is available, persist the exact prompt and requested screen roles before
+the call, then prepare and transition the operation there. Default distinct
+screen roles to focused operations. Do not create a fallback project after a
+payload error, empty list, design-system failure, or timeout. An ambiguous
+timed-out operation stays attached to the screen role. In default autonomous
+recovery mode, reconcile once more, policy-authorize one bounded linked
+replacement, and continue without asking the user. Decompose compound requests
+into focused role operations. Escalate only manual-mode decisions, exhausted
+recovery, or product choices the repo evidence cannot resolve.
 
 ### 4. Save Concept Artifacts
 When Stitch produces useful outputs:

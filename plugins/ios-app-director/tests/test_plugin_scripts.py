@@ -273,12 +273,14 @@ class ScreenArtifactTests(unittest.TestCase):
 
 
 class StitchOperationJournalTests(unittest.TestCase):
-    def journal(self):
+    def journal(self, max_replacement_attempts=1, replacement_mode="autonomous"):
         journal = stitch_operations.new_journal(
             "setup-001",
             "Example App Concepts",
             required_capabilities=["stitch"],
             optional_capabilities=["cloudflare"],
+            max_replacement_attempts=max_replacement_attempts,
+            replacement_mode=replacement_mode,
         )
         stitch_operations.adopt_project(
             journal,
@@ -288,14 +290,25 @@ class StitchOperationJournalTests(unittest.TestCase):
         )
         return journal
 
-    def prepare(self, journal, operation_id="welcome-001", screen_role="welcome"):
-        stitch_operations.prepare_operation(
+    def prepare(
+        self,
+        journal,
+        operation_id="welcome-001",
+        screen_role="welcome",
+        prompt="Generate the welcome screen.",
+        requested_screen_roles=None,
+        replacement_for=None,
+    ):
+        return stitch_operations.prepare_operation(
             journal,
             operation_id,
             "generate_screen",
             "project-123",
             screen_role,
             ["existing-screen"],
+            replacement_for=replacement_for,
+            prompt=prompt,
+            requested_screen_roles=requested_screen_roles,
         )
 
     def test_rejects_second_active_project_after_successful_creation(self) -> None:
@@ -356,7 +369,21 @@ class StitchOperationJournalTests(unittest.TestCase):
             "generate_screen",
             "project-123",
             "welcome",
+            prompt="Generate the welcome screen with the corrected payload.",
         )
+
+    def test_prepare_requires_the_exact_prompt(self) -> None:
+        journal = self.journal()
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "exact mutation prompt"
+        ):
+            stitch_operations.prepare_operation(
+                journal,
+                "welcome-without-prompt",
+                "generate_screen",
+                "project-123",
+                "welcome",
+            )
 
     def test_timeout_requires_linked_replacement_authorization(self) -> None:
         journal = self.journal()
@@ -375,6 +402,7 @@ class StitchOperationJournalTests(unittest.TestCase):
                 "generate_screen",
                 "project-123",
                 "welcome",
+                prompt="Generate the welcome screen again.",
             )
         stitch_operations.transition_operation(
             journal,
@@ -388,8 +416,273 @@ class StitchOperationJournalTests(unittest.TestCase):
             "project-123",
             "welcome",
             replacement_for="welcome-001",
+            prompt="Generate the welcome screen again.",
         )
         self.assertEqual(journal["operations"][-1]["replacementFor"], "welcome-001")
+
+    def test_replacement_link_cannot_bypass_authorization_with_a_new_role(self) -> None:
+        journal = self.journal()
+        self.prepare(
+            journal,
+            screen_role="onboarding-set",
+            requested_screen_roles=["welcome", "goals"],
+        )
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "ambiguous_timeout",
+            failure_class="timeout_or_connection",
+        )
+
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "replacement target is not authorized"
+        ):
+            self.prepare(
+                journal,
+                operation_id="goals-focused",
+                screen_role="goals",
+                requested_screen_roles=["goals"],
+                replacement_for="welcome-001",
+            )
+
+    def test_persists_exact_prompt_and_flags_compound_screen_requests(self) -> None:
+        journal = self.journal()
+        prompt = "Generate onboarding screens.\nPreserve this exact wording.\n"
+        operation = self.prepare(
+            journal,
+            screen_role="onboarding-set",
+            prompt=prompt,
+            requested_screen_roles=["welcome", "goals"],
+        )
+
+        self.assertEqual(operation["request"]["prompt"], prompt)
+        self.assertEqual(
+            operation["request"]["promptSha256"],
+            stitch_operations.prompt_sha256(prompt),
+        )
+        self.assertTrue(operation["recovery"]["decompositionRecommended"])
+        _, warnings, _ = stitch_operations.audit_journal(journal)
+        self.assertTrue(any("multiple screen roles" in item for item in warnings))
+
+    def test_ambiguous_timeout_records_polls_and_requires_immediate_decision(self) -> None:
+        journal = self.journal()
+        self.prepare(
+            journal,
+            screen_role="onboarding-set",
+            requested_screen_roles=["welcome", "goals"],
+        )
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "polling",
+            failure_class="timeout_or_connection",
+        )
+        stitch_operations.transition_operation(journal, "welcome-001", "polling")
+        operation = stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "ambiguous_timeout",
+        )
+
+        self.assertEqual(operation["recovery"]["pollCount"], 2)
+        self.assertEqual(
+            operation["recovery"]["decisionStatus"], "autonomous_recovery_ready"
+        )
+        self.assertIsNotNone(operation["recovery"]["decisionRequiredAt"])
+        _, warnings, _ = stitch_operations.audit_journal(journal)
+        immediate = [
+            item for item in warnings if item.startswith("AUTONOMOUS RECOVERY:")
+        ]
+        self.assertEqual(len(immediate), 1)
+        self.assertIn("decompose the compound request", immediate[0])
+
+    def test_manual_recovery_mode_still_requires_a_user_decision(self) -> None:
+        journal = self.journal(replacement_mode="manual")
+        self.prepare(journal)
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        operation = stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "ambiguous_timeout",
+            failure_class="timeout_or_connection",
+        )
+
+        self.assertEqual(operation["recovery"]["decisionStatus"], "required")
+        _, warnings, _ = stitch_operations.audit_journal(journal)
+        self.assertTrue(
+            any(
+                item.startswith("IMMEDIATE RECOVERY DECISION:")
+                for item in warnings
+            )
+        )
+
+    def test_default_replacement_budget_stops_a_repeated_timeout(self) -> None:
+        journal = self.journal()
+        self.prepare(journal)
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "ambiguous_timeout",
+            failure_class="timeout_or_connection",
+        )
+        stitch_operations.transition_operation(
+            journal, "welcome-001", "replacement_authorized"
+        )
+        self.prepare(
+            journal,
+            operation_id="welcome-002",
+            replacement_for="welcome-001",
+        )
+        stitch_operations.transition_operation(journal, "welcome-002", "submitted")
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-002",
+            "ambiguous_timeout",
+            failure_class="timeout_or_connection",
+        )
+
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "replacement budget exhausted"
+        ):
+            stitch_operations.transition_operation(
+                journal, "welcome-002", "replacement_authorized"
+            )
+
+    def test_replacement_budget_is_configurable(self) -> None:
+        journal = self.journal(max_replacement_attempts=2)
+        self.prepare(journal)
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "ambiguous_timeout",
+            failure_class="timeout_or_connection",
+        )
+        stitch_operations.transition_operation(
+            journal, "welcome-001", "replacement_authorized"
+        )
+        self.prepare(
+            journal,
+            operation_id="welcome-002",
+            replacement_for="welcome-001",
+        )
+        stitch_operations.transition_operation(journal, "welcome-002", "submitted")
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-002",
+            "ambiguous_timeout",
+            failure_class="timeout_or_connection",
+        )
+        operation = stitch_operations.transition_operation(
+            journal, "welcome-002", "replacement_authorized"
+        )
+        self.assertEqual(
+            operation["recovery"]["decisionStatus"], "replacement_authorized"
+        )
+
+    def test_authorized_compound_replacement_can_be_decomposed_once(self) -> None:
+        journal = self.journal()
+        self.prepare(
+            journal,
+            screen_role="onboarding-set",
+            requested_screen_roles=["welcome", "goals"],
+        )
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "ambiguous_timeout",
+            failure_class="timeout_or_connection",
+        )
+        stitch_operations.transition_operation(
+            journal, "welcome-001", "replacement_authorized"
+        )
+
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "must decompose a compound request"
+        ):
+            self.prepare(
+                journal,
+                operation_id="onboarding-repeated",
+                screen_role="onboarding-set",
+                requested_screen_roles=["welcome", "goals"],
+                replacement_for="welcome-001",
+            )
+
+        welcome = self.prepare(
+            journal,
+            operation_id="welcome-focused",
+            screen_role="welcome",
+            requested_screen_roles=["welcome"],
+            replacement_for="welcome-001",
+        )
+        goals = self.prepare(
+            journal,
+            operation_id="goals-focused",
+            screen_role="goals",
+            requested_screen_roles=["goals"],
+            replacement_for="welcome-001",
+        )
+        self.assertEqual(welcome["recovery"]["replacementStrategy"], "decomposed")
+        self.assertEqual(goals["recovery"]["replacementStrategy"], "decomposed")
+        stitch_operations.transition_operation(
+            journal, "welcome-focused", "submitted"
+        )
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-focused",
+            "succeeded",
+            new_screen_ids=["welcome-screen"],
+        )
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "already produced the requested screen roles"
+        ):
+            self.prepare(
+                journal,
+                operation_id="welcome-duplicate",
+                screen_role="welcome",
+                requested_screen_roles=["welcome"],
+                replacement_for="welcome-001",
+            )
+
+    def test_late_original_success_cancels_a_prepared_replacement(self) -> None:
+        journal = self.journal()
+        self.prepare(journal)
+        stitch_operations.transition_operation(journal, "welcome-001", "submitted")
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "ambiguous_timeout",
+            failure_class="timeout_or_connection",
+        )
+        stitch_operations.transition_operation(
+            journal, "welcome-001", "replacement_authorized"
+        )
+        self.prepare(
+            journal,
+            operation_id="welcome-002",
+            replacement_for="welcome-001",
+        )
+        stitch_operations.transition_operation(
+            journal,
+            "welcome-001",
+            "succeeded",
+            new_screen_ids=["late-welcome-screen"],
+        )
+
+        with self.assertRaisesRegex(
+            stitch_operations.JournalError, "no longer authorized"
+        ):
+            stitch_operations.transition_operation(
+                journal, "welcome-002", "submitted"
+            )
+        replacement = stitch_operations.transition_operation(
+            journal, "welcome-002", "abandoned"
+        )
+        self.assertEqual(replacement["status"], "abandoned")
 
     def test_completed_role_can_be_explored_again(self) -> None:
         journal = self.journal()
@@ -407,6 +700,7 @@ class StitchOperationJournalTests(unittest.TestCase):
             "generate_screen",
             "project-123",
             "welcome",
+            prompt="Generate a distinct welcome exploration.",
         )
 
     def test_optional_capability_failure_is_non_blocking(self) -> None:
@@ -741,7 +1035,7 @@ class DistributionContractTests(unittest.TestCase):
         xcodebuildmcp = mcp["mcpServers"]["xcodebuildmcp"]
         cloudflare = mcp["mcpServers"]["cloudflare-api"]
 
-        self.assertEqual(manifest["version"], "0.5.4")
+        self.assertEqual(manifest["version"], "0.5.5")
         self.assertEqual(manifest["mcpServers"], "./.mcp.json")
         self.assertEqual(
             xcodebuildmcp["env"]["XCODEBUILDMCP_ENABLED_WORKFLOWS"],
@@ -756,6 +1050,7 @@ class DistributionContractTests(unittest.TestCase):
             stitch["env_http_headers"],
             {"X-Goog-Api-Key": "STITCH_API_KEY"},
         )
+        self.assertEqual(stitch["tool_timeout_sec"], 300)
         self.assertIn("generic OAuth Authenticate action is not", stitch["note"])
         self.assertEqual(cloudflare["url"], "https://mcp.cloudflare.com/mcp")
         self.assertIs(cloudflare["enabled"], False)
@@ -778,6 +1073,21 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("launchctl setenv STITCH_API_KEY", helper)
         self.assertIn("launchctl unsetenv STITCH_API_KEY", helper)
         self.assertNotIn("echo $stitch_api_key", helper)
+
+    def test_stitch_timeout_matches_generated_project_config(self) -> None:
+        ready_root = PLUGIN_ROOT.parent.parent
+        source_config = (ready_root / ".codex/config.toml").read_text(
+            encoding="utf-8"
+        )
+        template_config = (
+            PLUGIN_ROOT
+            / "skills/ios-app-bootstrap/templates/ai-app-engine/.codex/config.toml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("tool_timeout_sec = 300", source_config)
+        self.assertIn("tool_timeout_sec = 300", template_config)
+        self.assertNotIn("tool_timeout_sec = 60", source_config)
+        self.assertNotIn("tool_timeout_sec = 60", template_config)
 
     def test_plugin_image_assets_are_png_at_required_sizes(self) -> None:
         manifest = json.loads(
