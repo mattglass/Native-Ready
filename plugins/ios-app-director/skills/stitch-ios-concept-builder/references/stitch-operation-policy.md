@@ -44,9 +44,24 @@ Before a generation, edit, variant, or design-system mutation:
    design-system parameters only when the current schema and discovered project
    state support them.
 3. Snapshot the active project update time and screen IDs.
-4. Prepare a journal operation containing the project ID, operation kind,
-   intended screen role, and baseline screen IDs.
-5. Verify that the project ID matches the journal's active project.
+4. Write the exact prompt to a durable local prompt file, normally
+   `.stitch/operations/prompts/<operation-id>.md`. Do not include API keys,
+   tokens, or other secrets in a Stitch prompt.
+5. Prepare a journal operation using the prompt file and containing the project
+   ID, operation kind, intended screen role, every requested screen role, and
+   baseline screen IDs. The helper persists the prompt and its digest in the
+   journal before the external mutation begins.
+6. Verify that the project ID matches the journal's active project.
+
+Initialize recovery with the helper defaults unless the user or active tool
+contract justifies another policy: `autonomous` replacement mode, one
+replacement attempt per lineage, and a decomposition warning at two requested
+screen roles. Configure different values with the journal's `init` options or
+`configure-recovery` command. Do not raise a replacement limit merely because
+the current limit was exhausted. A journal created before `recoveryPolicy`
+existed retains legacy `manual` behavior; migrate it deliberately with
+`configure-recovery --replacement-mode autonomous` rather than silently
+changing an unresolved operation's recovery contract.
 
 Schema correction is normal autonomous work. It must not be implemented by
 creating another project or by trying an unrelated project ID.
@@ -76,11 +91,24 @@ Never describe a mutation as accepted, generating, or completed after an
 invalid argument. A timeout may be described only as outcome unknown until
 project evidence confirms success.
 
+## Request Sizing
+
+Default `generate_screen_from_text` to one requested screen role per operation.
+Preserve a coherent multi-screen flow by sequencing focused prompts against the
+same project and design system, not by requiring one compound mutation.
+
+If a small compound request is justified by the active tool contract, record
+each requested role during preflight. The journal flags requests at or above
+the configured decomposition threshold without prohibiting them. Reconsider
+that warning before submitting. It provides a safe decomposition map if the
+compound outcome later becomes ambiguous.
+
 ## Timeout Recovery
 
 Follow the active Stitch tool's timeout instructions. When no screen ID is
 returned, poll the same project's screen list and update time using the
-preflight baseline.
+preflight baseline. Transition the journal through `polling` for every poll so
+the count survives handoff.
 
 During polling:
 
@@ -88,14 +116,36 @@ During polling:
 - unchanged evidence keeps the operation in `polling`
 - exhausting the prescribed polling budget yields `ambiguous_timeout`
 
-An ambiguous timeout does not freeze unrelated dependency-safe work. It does,
-however, remain an active design dependency. Surface the replacement decision
-to the user as soon as the polling budget is exhausted when it blocks a required
-screen chain. Do not wait until every unrelated roadmap item is complete.
+An ambiguous timeout does not freeze unrelated dependency-safe work, but
+recover its design dependency before moving on when recovery is available.
+Transition to `ambiguous_timeout` and act on the journal's recovery mode in the
+same loop iteration as the final poll.
 
-After explicit replacement authorization, record `replacement_authorized` and
-prepare a new operation linked through `replacementFor`. If the original output
-appears before replacement begins, adopt it and cancel the replacement.
+In default `autonomous` mode:
+
+1. Verify that the journal contains at least one `polling` transition.
+2. Reconcile the same project one final time immediately before replacement.
+   Record its full observed screen ID list and project update time with
+   `record-final-reconciliation`, explicitly classifying both the outcome and
+   whether the response was complete. Treat a truncated response as
+   inconclusive; it cannot support `no_matching_output`.
+3. If matching output appeared, record it as matching, adopt it, and stop
+   recovery.
+4. Only when the final evidence records `no_matching_output`, transition to
+   `replacement_authorized` under the recorded policy.
+5. Prepare one linked replacement using the persisted prompt and requested
+   roles, then continue without asking the user.
+6. For a compound request, create focused child operations for disjoint roles;
+   autonomous recovery must not repeat the compound mutation.
+
+Use `manual` mode only when the user requests per-mutation control. In that
+mode, surface the replacement choice as soon as polling is exhausted.
+
+If the original output appears after replacement preparation but before
+submission, adopt it and abandon the prepared replacement. If the bounded
+replacement also becomes ambiguous, stop mutations for those roles, continue
+dependency-safe work, and escalate the exhausted recovery. Never silently
+start a second retry.
 
 ## Concept Coverage Audit
 
@@ -114,9 +164,15 @@ must not describe the concept set as complete unless every required role is
 Create or retain an actionable `stitch_art_expansion` task for each blocking
 gap.
 
+When a required role is `missing` and no unresolved journal operation covers
+it, generate it autonomously in the active project. Missing concept evidence is
+normal Stitch-loop work, not a routine reason to ask the user what to do.
+
 During delivery, `stitch_expansion: needed` is an instruction to perform the
 expansion, not merely document it. Generate in the active project unless a
-prior operation for that role is still polling or ambiguously timed out.
+prior operation for that role is still polling or ambiguously timed out. Poll
+or recover that operation immediately; do not treat its unresolved state as a
+reason to leave the required screen missing.
 
 ## Capability Scoping
 

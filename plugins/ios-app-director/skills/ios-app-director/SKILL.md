@@ -244,9 +244,10 @@ A dependency-safe `stitch_art_expansion` task is executable design work, not a
 documentation-only blocker. Follow the shared Stitch operation policy and
 attempt the missing screen/state in the active project unless the same role has
 an operation that is still polling or ambiguously timed out. If prescribed
-polling is exhausted, preserve independent delivery progress but surface the
-replacement decision promptly; do not defer that decision until unrelated work
-is exhausted.
+polling is exhausted, run the configured bounded recovery immediately. Default
+to one autonomous linked replacement, decomposing compound screen requests into
+focused roles. Preserve independent delivery progress and involve the user only
+when recovery is manual, exhausted, or requires a product decision.
 
 When Stitch screens or local intake artifacts have changed, refresh and read the stable intake manifest before changing APP.md, DESIGN.md, roadmap, or SwiftUI. Prefer the `stitch-ios-intake` manifest script or directory-level discovery, not shell commands that name each newly added screenshot or HTML file.
 

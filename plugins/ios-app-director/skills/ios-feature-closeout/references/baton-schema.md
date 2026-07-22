@@ -74,7 +74,7 @@ the missing artwork or screen state, the native fidelity gap being unblocked,
 the intake/asset extraction handoff, and the follow-up SwiftUI destination.
 Name the active operation ID and recovery state when generation has been
 submitted. `ambiguous_timeout` remains an actionable recovery state, not a
-generic design blocker; surface replacement authorization promptly when it
+generic design blocker; run configured autonomous recovery promptly when it
 blocks the task chain.
 
 ### debug_fix

@@ -88,9 +88,9 @@ should ask Stitch for another screen, state, or variant in the existing visual
 world, then route the result through intake and asset extraction.
 
 If the expansion operation times out, preserve it as unresolved, poll the same
-project, and request replacement authorization as soon as the ambiguity blocks
-the dependent visual task. Continue unrelated dependency-safe work while that
-decision is pending.
+project, and run configured bounded recovery as soon as the ambiguity blocks
+the dependent visual task. Continue unrelated dependency-safe work if recovery
+is exhausted or manual.
 
 Do not let prototype promotion, user-testing, release-readiness, or App Store
 tasks outrun unresolved visual parity gaps on core screens such as onboarding,
