@@ -179,7 +179,9 @@ placeholders or the intake reveals a material design-system change.
 - use exact tokens only when evidence supports them
 - capture native behavior, states, artwork, motion, accessibility, and banned
   patterns, not just colors and typography
-- keep live SwiftUI tokens authoritative once implementation exists
+- keep verified SwiftUI behavior authoritative for current-state claims, but
+  treat live tokens as adoption evidence until the user accepts them or the
+  relevant design-first surface passes its visual gate
 
 Do not rewrite a stable design system merely because one new screen differs.
 Record the difference as a question or candidate direction until the evidence
@@ -211,5 +213,12 @@ After intake, hand off to `ios-feature-map` with:
 - required concept roles that are missing, artifact-only, or deferred
 - unresolved Stitch operation IDs and recovery state
 - remaining questions
+
+Partial concept coverage may continue into feature mapping so missing evidence
+stays visible and actionable. Mark the native design handoff as blocked for each
+required `missing` role, required `deferred` role without explicit user-accepted
+fallback, missing artifact provenance, or unresolved Stitch operation. Intake
+completion is not implementation readiness; the concept builder's
+`native-design-handoff` audit must pass before dependent SwiftUI work begins.
 
 Do not proceed to Swift files from this skill.

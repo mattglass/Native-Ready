@@ -67,3 +67,7 @@ Next baton:
   mark the screen blocked unless a product decision accepts the substitution.
 - If evidence does not prove exact matching, use
   `in_progress_not_verified_exact` and keep or create a follow-up task.
+- Before recording promotion, run `scripts/validate_visual_exit.py` from the
+  active `ios-visual-spine` skill directory with `--repo-root .` and the
+  matching `--claim`. A pass confirms evidence consistency, not aesthetic
+  quality; the side-by-side judgment is still required.

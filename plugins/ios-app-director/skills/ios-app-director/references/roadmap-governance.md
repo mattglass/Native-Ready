@@ -207,6 +207,11 @@ If the current task only proves `same product family`, close it as progress but
 do not use it as prototype-exit proof for screens where Stitch quality is a
 core product requirement.
 
+Write `.stitch/visual-parity-audit.md`, reconcile its screen matrix with
+`.stitch/metadata.json`, then run the active
+`ios-visual-spine/scripts/validate_visual_exit.py` with the matching maturity
+claim. A nonzero result blocks promotion even when the native build succeeds.
+
 ## Release-readiness sequencing gate
 
 Before promoting to beta/release-candidate or creating App Store/submission

@@ -116,9 +116,14 @@ durable handoff summary needed by future sessions.
   "screenIds": [],
   "artifactPaths": [],
   "linkedTask": "TASK-ID or null",
+  "userAcceptedNativeFallback": false,
   "note": "brief provenance or deferral reason"
 }
 ```
+
+Set `userAcceptedNativeFallback` to `true` only for a required `deferred` role
+when the user explicitly accepts native implementation without the missing
+Stitch evidence. A linked task or agent-authored note is not acceptance.
 
 ## riskRegister item
 ```json

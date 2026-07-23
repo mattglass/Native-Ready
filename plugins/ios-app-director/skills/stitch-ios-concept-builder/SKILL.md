@@ -120,18 +120,23 @@ when available.
 - Snapshot screen IDs before a mutation, prepare the journal operation, and
   classify its result before reporting progress. Persist the exact prompt with
   `--prompt-file` and list each requested role with
-  `--requested-screen-role`; never put secrets in a Stitch prompt.
+  `--requested-screen-role`; the prompt file must remain under
+  `.stitch/operations/prompts/` so audit can verify its stored path and digest.
+  Never put secrets in a Stitch prompt.
 - Treat an invalid argument as a payload problem, not a project problem.
 - Treat `auth_required` with a present `STITCH_API_KEY` as a key-propagation or key-validity problem, not permission to create a replacement project.
 - Treat a timeout as outcome unknown and poll the same project according to the
-  current Stitch tool contract, recording each poll in the journal.
+  current Stitch tool contract, recording each observation with `record-poll`.
+  The current generation and variant tools prescribe every 30 seconds for up
+  to 10 attempts; a later explicit tool contract governs if it differs.
 - When polling is exhausted, record `ambiguous_timeout` and act on the configured
   recovery mode immediately; do not finish unrelated work first.
-- For every replacement, require at least one recorded poll, then use
-  `record-final-reconciliation` to persist the final same-project screen IDs
-  and project update time. Mark whether the response was complete; truncated
-  output remains inconclusive. Matching output resolves the original operation;
-  only complete, recorded `no_matching_output` evidence permits authorization.
+- For every replacement, require the full evidence-bearing polling budget, then
+  use `record-final-reconciliation` to persist the final same-project screen
+  IDs and project update time. Mark whether the response was complete;
+  truncated output remains inconclusive. Matching output resolves the original
+  operation; only complete, recorded `no_matching_output` evidence permits
+  authorization.
 - Default newly initialized READY journals to `autonomous`: after the required
   reconciliation, policy-authorize one linked replacement and continue the loop
   without asking the user. Journals without an explicit recovery policy retain
@@ -154,11 +159,32 @@ After generation:
 - reconcile requested/product-required screen roles as `live`,
   `artifact_only`, `missing`, `deferred`, or `not_needed`
 - generate a required `missing` role autonomously when no unresolved operation
-  already covers it; missing concept evidence is work for the Stitch loop, not
-  a routine user decision
+  already covers it; missing concept evidence is a transient Stitch-loop state,
+  not a routine user decision and not implementation-ready evidence
 - keep each required missing role actionable through a `stitch_art_expansion`
   task rather than treating the concept set as silently complete
-- hand off to `stitch-ios-intake`
+- run the operational audit before handoff:
+
+  ```bash
+  python3 <stitch-ios-concept-builder-skill-dir>/scripts/stitch_operation_journal.py audit \
+    --repo-root . --gate operational
+  ```
+
+- hand off to `stitch-ios-intake`; partial coverage may continue into intake and
+  feature planning only when every gap and unresolved operation is explicit
+
+Before any dependent native implementation, require the shared strict gate to
+pass:
+
+```bash
+python3 <stitch-ios-concept-builder-skill-dir>/scripts/stitch_operation_journal.py audit \
+  --repo-root . --gate native-design-handoff \
+  --screen-role "<dependent concept role>"
+```
+
+A failure returns the role to the same active project's generate, poll,
+reconcile, or recovery loop. It does not authorize a generic native substitute.
+Omit `--screen-role` only when validating the complete required concept set.
 
 ### 5. Avoid Premature Scope Lock
 

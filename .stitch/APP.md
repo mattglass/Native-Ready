@@ -20,14 +20,24 @@ The app exists to:
 5. `[GOAL_5]`
 
 ## 3. Source-of-Truth Hierarchy
-When docs, concept work, and implementation disagree, prefer this order:
+Do not force current capability and intended visual direction into one ranking.
 
-1. **Live native implementation**
-2. **`AGENTS.md`**
+For product scope, constraints, and current behavior, prefer:
+
+1. **Explicit user decisions and `AGENTS.md`**
+2. **Verified runtime behavior and native implementation**
 3. **`docs/app-build-spec.md`**
-4. **`.stitch/DESIGN.md`**
-5. **`.stitch/ROADMAP.md` and `.stitch/next-prompt.md`**
-6. **Concept references and future Stitch work**
+4. **`.stitch/ROADMAP.md` and `.stitch/next-prompt.md`**
+
+For intended visual identity on a design-first surface, prefer:
+
+1. **Explicit user design decisions**
+2. **`.stitch/DESIGN.md`, approved screen packets, and their source artwork**
+3. **The active Stitch design system and tracked reference screens**
+4. **Native tokens and surfaces only after user acceptance or a passed visual gate**
+
+An ungated native pass records adoption or divergence. It does not silently
+replace the intended visual direction.
 
 ## 4. Core Feature Areas
 
@@ -63,8 +73,12 @@ Use these as the primary implementation destinations:
 - Design system: `[NATIVE_SOURCE_ROOT]Shared/DesignSystem/`
 
 ## 6. Concept / Stitch Policy
-- Treat Stitch as a concept and layout-exploration system by default
-- Do not let concept output overrule native UX, product constraints, or service reality
+- Treat Stitch as a concept and layout-exploration system and, when approved,
+  evidence of the intended visual identity
+- Do not let concept output overrule verified native behavior, product
+  constraints, or service reality
+- Do not let an ungated native approximation overrule approved Stitch visual
+  language, screen packets, or source artwork
 - Favor concepts that feel implementable in SwiftUI and credible for the target user
 - Prefer workflow clarity over decorative novelty
 

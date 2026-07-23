@@ -184,15 +184,22 @@ internal setup coordinator and other NATIVE READY specialists to provide:
 - one provenance-backed active Stitch mutation project per visual world, without
   fallback projects after payload errors, timeouts, or empty reads
 - a local Stitch operation journal for truthful mutation state and explicit
-  ambiguous-timeout recovery
+  ambiguous-timeout recovery with evidence-bearing polling and durable prompt
+  verification
 - Stitch screen and screenshot intake
 - stable queued save/download and intake manifest generation for refreshed screenshots and HTML
 - source artwork extraction from Stitch HTML into `.stitch/intake/assets/`
 - screenshot-to-feature-map synthesis
 - product-driven concept coverage so required missing screens remain actionable
   expansion work without imposing a fixed screen set or count
+- a strict native-design-handoff gate so partial coverage can inform planning
+  without silently authorizing its dependent SwiftUI surface
 - quality-controlled `.stitch/APP.md` section 9 generation before roadmap and baton creation
 - visual-spine planning and screen-level implementation packets so native work preserves the creative identity from Stitch
+- separate verified current behavior from intended design authority so an early
+  generic SwiftUI pass cannot silently overrule approved Stitch evidence
+- enforce design-first maturity claims with a visual-exit evidence validator;
+  same-family or generic-substitute core screens remain active recovery work
 - automated native SwiftUI Xcode scaffolding with app-specific target/module/scheme naming
 - placeholder cleanup so `MyApp` does not leak into implementation destinations
 - refresh mode when new Stitch screens should update APP.md, DESIGN.md, metadata, roadmap, or baton

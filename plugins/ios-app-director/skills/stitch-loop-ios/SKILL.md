@@ -13,7 +13,9 @@ allowed-tools:
 You are an autonomous iOS design-and-implementation agent working from a local `.stitch/` workspace.
 
 ## Purpose
-Use Stitch as a **concept and screen exploration tool** for a SwiftUI app, while keeping the shipped app's native design system as the source of truth.
+Use Stitch as a **concept and screen exploration tool** for a SwiftUI app while
+preserving approved design-first evidence through native adoption and visual
+validation.
 
 This is not a website loop.
 
@@ -28,11 +30,16 @@ Before starting, read:
 - `../stitch-ios-concept-builder/references/stitch-operation-policy.md`
 
 ## Core Principle
-When Stitch concepts conflict with the live app:
+Separate current capability from intended visual direction:
 
-1. native SwiftUI files win
-2. local design tokens win
-3. Stitch remains conceptual unless explicitly promoted
+1. verified native code and runtime behavior define what currently works
+2. explicit user design decisions, approved screen packets, active Stitch
+   references, and source artwork define the intended visual identity
+3. native tokens and surfaces become visual authority only after user acceptance
+   or the relevant visual gate passes
+
+An ungated native pass is adoption or divergence evidence. It must not feed a
+weaker visual language back into Stitch as if it were the approved target.
 
 ## Queue + Baton Contract
 The queue file is `.stitch/ROADMAP.md`.
@@ -137,8 +144,23 @@ When Stitch produces useful outputs:
 
 ### 5. Translate to Native
 If the baton mode requires implementation:
+- resolve `<stitch-ios-concept-builder-skill-dir>` as the sibling active skill
+  directory containing `stitch-ios-concept-builder/SKILL.md`
+- run the native design handoff gate before editing the dependent surface:
+
+  ```bash
+  python3 <stitch-ios-concept-builder-skill-dir>/scripts/stitch_operation_journal.py audit \
+    --repo-root . --gate native-design-handoff \
+    --screen-role "<baton concept role>"
+  ```
+
+- if the gate fails, return to the active project's generation, polling,
+  reconciliation, or bounded recovery loop; continue only work genuinely
+  independent of the blocked design role
 - translate the concept into SwiftUI structures
-- reuse existing tokens, gradients, card styles, and spacing logic
+- reuse existing tokens, gradients, card styles, and spacing logic only when
+  they were accepted or passed the relevant visual gate; otherwise compare and
+  evolve them from the approved design evidence
 - keep the result plausible for the app's navigation and state model
 
 ### 6. Validate Natively
@@ -163,6 +185,9 @@ Before finishing:
 - Prefer SwiftUI-native interaction patterns over HTML layout mimicry
 - Prefer fewer, stronger sections over dashboard clutter
 - Prefer trust-building product UX over concept-only spectacle
+- Preserve product-critical artwork, atmosphere, hierarchy, and component
+  grammar from approved design evidence; do not flatten them into generic cards
+  or SF Symbols merely because the native pass is easier to implement
 
 ## When to Use This Skill
 Use this workflow when the user wants to:

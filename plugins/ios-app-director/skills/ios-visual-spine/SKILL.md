@@ -35,6 +35,18 @@ If native implementation exists, also inspect:
 - shared design system files
 - asset catalogs
 
+## Design Authority Boundary
+
+For a design-first app, verified native behavior is authoritative for what the
+app currently does, but it is not automatic authority for what the app should
+look like. Until the user explicitly accepts, rejects, or supersedes a visual
+direction, the active Stitch references, extracted source artwork,
+`.stitch/DESIGN.md`, and screen packets define intended visual identity. Treat
+the live SwiftUI implementation as adoption evidence to compare against that
+intent. Never let an early scaffold promote its generic tokens, default
+`TabView`, plain cards, or SF Symbols into the design source of truth merely
+because they exist first.
+
 ## Workflow
 
 ### 1. Pair References With Native Screens
@@ -146,6 +158,21 @@ maturity.
 Write or update `.stitch/visual-parity-audit.md` using
 `references/visual-parity-audit-template.md` when the audit affects maturity,
 user-testing readiness, beta readiness, or exact-reference work.
+
+After updating the audit and `.stitch/metadata.json`, run:
+
+```bash
+python3 <ios-visual-spine-skill-dir>/scripts/validate_visual_exit.py \
+  --repo-root . --claim prototype_exit
+```
+
+Resolve `<ios-visual-spine-skill-dir>` as the directory containing this active
+`SKILL.md`. Use `user_testing_readiness`, `beta_readiness`,
+`release_readiness`, or `exact_reference` when that is the actual claim. A
+blocked result must keep or create the smallest visual-spine task; it cannot be
+overridden by a successful build or by prose in roadmap notes. The script
+validates evidence consistency and coverage. It does not replace the required
+side-by-side visual judgment.
 
 When a user asks for a named screen to match Stitch exactly, classify the target
 as `exact_reference` and keep work active until a requirement-by-requirement

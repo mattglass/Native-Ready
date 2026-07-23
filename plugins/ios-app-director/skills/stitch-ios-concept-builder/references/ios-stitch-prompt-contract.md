@@ -9,11 +9,17 @@ both product planning and native SwiftUI implementation.
 Build the prompt from the strongest available evidence:
 
 1. explicit user decisions
-2. live native behavior and design tokens
-3. the active Stitch project's design system and reference screens
-4. filled guidance in `.stitch/DESIGN.md` and `.stitch/APP.md`
-5. intake artifacts and the current roadmap task
+2. the active Stitch project's design system and tracked reference screens
+3. evidence-backed guidance in `.stitch/DESIGN.md`, approved screen packets,
+   and source artwork
+4. native tokens and surfaces already accepted by the user or validated by the
+   relevant visual gate
+5. verified native behavior, intake artifacts, and the current roadmap task
 6. cautious proposals for details that are still undecided
+
+Verified native behavior remains authoritative for claims about what currently
+works. An ungated or generic native pass is adoption evidence, not automatic
+visual authority and not a seed for weakening the active Stitch visual world.
 
 Do not present an inferred token, feature, metric, or service as established
 product truth.
